@@ -1,0 +1,616 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+local TeleportService = game:GetService("TeleportService")
+
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local humanoid = char:WaitForChild("Humanoid")
+
+-- Các biến quản lý tính năng
+local noclip = false
+local flying = false
+local infJump = false
+local espEnabled = false
+local fullbright = false
+local antiStun = false
+local antiDamage = false
+
+local FlySpeed = 50
+local CustomSpeed = 16
+local CustomJump = 50
+
+local flyAttachment = nil
+local flyVelocity = nil
+
+player.CharacterAdded:Connect(function(newChar)
+	char = newChar
+	humanoid = newChar:WaitForChild("Humanoid")
+	flying = false
+	noclip = false
+	flyAttachment = nil
+	flyVelocity = nil
+end)
+
+-- ==================== HỆ THỐNG GIAO DIỆN (GUI) ====================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "NguyenDzHub_Menu"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+----------------------------------------------------------------
+-- [1] CỬA SỔ CÂU HỎI BẤT BUỘC
+----------------------------------------------------------------
+local QuestionFrame = Instance.new("Frame")
+QuestionFrame.Parent = ScreenGui
+QuestionFrame.Size = UDim2.new(0, 300, 0, 150)
+QuestionFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
+QuestionFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+QuestionFrame.BorderSizePixel = 0
+
+local QCorner = Instance.new("UICorner")
+QCorner.CornerRadius = UDim.new(0, 8)
+QCorner.Parent = QuestionFrame
+
+local Question = Instance.new("TextLabel")
+Question.Parent = QuestionFrame
+Question.Size = UDim2.new(1, 0, 0, 60)
+Question.BackgroundTransparency = 1
+Question.TextScaled = true
+Question.TextColor3 = Color3.new(1, 1, 1)
+Question.Text = "Nguyên có đẹp trai sigma ngầu lòi k?"
+Question.Font = Enum.Font.SourceSansBold
+
+local Btn1 = Instance.new("TextButton")
+Btn1.Parent = QuestionFrame
+Btn1.Size = UDim2.new(0, 120, 0, 40)
+Btn1.Position = UDim2.new(0, 20, 0, 90)
+Btn1.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+Btn1.TextColor3 = Color3.new(1, 1, 1)
+Btn1.Font = Enum.Font.SourceSansBold
+Btn1.TextSize = 18
+Btn1.Text = "Có"
+Instance.new("UICorner", Btn1).CornerRadius = UDim.new(0, 6)
+
+local Btn2 = Instance.new("TextButton")
+Btn2.Parent = QuestionFrame
+Btn2.Size = UDim2.new(0, 120, 0, 40)
+Btn2.Position = UDim2.new(0, 160, 0, 90)
+Btn2.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+Btn2.TextColor3 = Color3.new(1, 1, 1)
+Btn2.Font = Enum.Font.SourceSansBold
+Btn2.TextSize = 18
+Btn2.Text = "Có"
+Instance.new("UICorner", Btn2).CornerRadius = UDim.new(0, 6)
+
+----------------------------------------------------------------
+-- [2] MENU CHÍNH (NGUYENDZHUB)
+----------------------------------------------------------------
+local MainMenu = Instance.new("Frame")
+MainMenu.Parent = ScreenGui
+MainMenu.Size = UDim2.new(0, 550, 0, 350)
+MainMenu.Position = UDim2.new(0.5, -275, 0.5, -175)
+MainMenu.BackgroundColor3 = Color3.fromRGB(18, 18, 20)
+MainMenu.BorderSizePixel = 0
+MainMenu.Active = true
+MainMenu.Draggable = true 
+MainMenu.Visible = false
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 10)
+MainCorner.Parent = MainMenu
+
+-- Thanh tiêu đề
+local TopBar = Instance.new("Frame")
+TopBar.Parent = MainMenu
+TopBar.Size = UDim2.new(1, 0, 0, 40)
+TopBar.BackgroundTransparency = 1
+
+local TitleText = Instance.new("TextLabel")
+TitleText.Parent = TopBar
+TitleText.Size = UDim2.new(1, -90, 1, 0)
+TitleText.Position = UDim2.new(0, 15, 0, 0)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "NguyenDzHub : Nguyên Sigma Edition" 
+TitleText.TextColor3 = Color3.fromRGB(220, 220, 225)
+TitleText.Font = Enum.Font.SourceSansBold
+TitleText.TextSize = 15
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Nút ẩn menu
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Parent = TopBar
+MinimizeBtn.Size = UDim2.new(0, 30, 0, 30)
+MinimizeBtn.Position = UDim2.new(1, -70, 0, 5)
+MinimizeBtn.BackgroundTransparency = 1
+MinimizeBtn.TextColor3 = Color3.fromRGB(150, 150, 160)
+MinimizeBtn.Text = "—"
+MinimizeBtn.Font = Enum.Font.SourceSansBold
+MinimizeBtn.TextSize = 16
+
+-- Nút xóa menu
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Parent = TopBar
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.TextColor3 = Color3.fromRGB(255, 70, 70) 
+CloseBtn.Text = "X"
+CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.TextSize = 16
+
+-- Sidebar bên trái
+local Sidebar = Instance.new("ScrollingFrame")
+Sidebar.Parent = MainMenu
+Sidebar.Size = UDim2.new(0, 160, 1, -45)
+Sidebar.Position = UDim2.new(0, 10, 0, 40)
+Sidebar.BackgroundTransparency = 1
+Sidebar.CanvasSize = UDim2.new(0, 0, 0, 400)
+Sidebar.ScrollBarThickness = 0
+
+local SidebarLayout = Instance.new("UIListLayout")
+SidebarLayout.Parent = Sidebar
+SidebarLayout.Padding = UDim.new(0, 5)
+
+-- Vạch ngăn cách
+local Divider = Instance.new("Frame")
+Divider.Parent = MainMenu
+Divider.Size = UDim2.new(0, 1, 1, -55)
+Divider.Position = UDim2.new(0, 175, 0, 45)
+Divider.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+Divider.BorderSizePixel = 0
+
+-- Khung chứa nội dung bên phải
+local ContentContainer = Instance.new("Frame")
+ContentContainer.Parent = MainMenu
+ContentContainer.Size = UDim2.new(1, -190, 1, -50)
+ContentContainer.Position = UDim2.new(0, 185, 0, 40)
+ContentContainer.BackgroundTransparency = 1
+
+local Tabs = {}
+local TabButtons = {}
+
+local function CreateTab(tabName)
+	local TabPage = Instance.new("ScrollingFrame")
+	TabPage.Size = UDim2.new(1, 0, 1, 0)
+	TabPage.BackgroundTransparency = 1
+	TabPage.CanvasSize = UDim2.new(0, 0, 0, 550)
+	TabPage.ScrollBarThickness = 2
+	TabPage.ScrollBarImageColor3 = Color3.fromRGB(50, 50, 55)
+	TabPage.Visible = false
+	TabPage.Parent = ContentContainer
+
+	local PageLayout = Instance.new("UIListLayout")
+	PageLayout.Parent = TabPage
+	PageLayout.Padding = UDim.new(0, 8)
+	
+	local TabBtn = Instance.new("TextButton")
+	TabBtn.Size = UDim2.new(1, -5, 0, 35)
+	TabBtn.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
+	TabBtn.BackgroundTransparency = 1
+	TabBtn.TextColor3 = Color3.fromRGB(150, 150, 155)
+	TabBtn.Text = "  " .. tabName
+	TabBtn.Font = Enum.Font.SourceSansBold
+	TabBtn.TextSize = 14
+	TabBtn.TextXAlignment = Enum.TextXAlignment.Left
+	TabBtn.Parent = Sidebar
+	Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 6)
+
+	Tabs[tabName] = TabPage
+	TabButtons[tabName] = TabBtn
+
+	TabBtn.MouseButton1Click:Connect(function()
+		for _, page in pairs(Tabs) do page.Visible = false end
+		for _, btn in pairs(TabButtons) do 
+			btn.BackgroundTransparency = 1 
+			btn.TextColor3 = Color3.fromRGB(150, 150, 155)
+		end
+		TabPage.Visible = true
+		TabBtn.BackgroundTransparency = 0
+		TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	end)
+
+	return TabPage
+end
+
+local function CreateSectionTitle(page, titleText)
+	local Label = Instance.new("TextLabel")
+	Label.Size = UDim2.new(1, 0, 0, 25)
+	Label.BackgroundTransparency = 1
+	Label.Text = titleText
+	Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Label.Font = Enum.Font.SourceSansBold
+	Label.TextSize = 16
+	Label.TextXAlignment = Enum.TextXAlignment.Left
+	Label.Parent = page
+end
+
+local function CreateToggleRow(page, featureText, defaultState, callback)
+	local Row = Instance.new("Frame")
+	Row.Size = UDim2.new(1, -10, 0, 40)
+	Row.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
+	Row.BorderSizePixel = 0
+	Row.Parent = page
+	Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 6)
+
+	local Label = Instance.new("TextLabel")
+	Label.Size = UDim2.new(0.7, 0, 1, 0)
+	Label.Position = UDim2.new(0, 12, 0, 0)
+	Label.BackgroundTransparency = 1
+	Label.Text = featureText
+	Label.TextColor3 = Color3.fromRGB(200, 200, 205)
+	Label.Font = Enum.Font.SourceSans
+	Label.TextSize = 14
+	Label.TextXAlignment = Enum.TextXAlignment.Left
+	Label.Parent = Row
+
+	local ToggleBtn = Instance.new("TextButton")
+	ToggleBtn.Size = UDim2.new(0, 45, 0, 22)
+	ToggleBtn.Position = UDim2.new(1, -55, 0, 9)
+	ToggleBtn.BackgroundColor3 = defaultState and Color3.fromRGB(50, 120, 250) or Color3.fromRGB(45, 45, 50)
+	ToggleBtn.Text = ""
+	ToggleBtn.Parent = Row
+	Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 11)
+
+	local StateCircle = Instance.new("Frame")
+	StateCircle.Size = UDim2.new(0, 16, 0, 16)
+	StateCircle.Position = defaultState and UDim2.new(1, -20, 0, 3) or UDim2.new(0, 4, 0, 3)
+	StateCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	StateCircle.Parent = ToggleBtn
+	Instance.new("UICorner", StateCircle).CornerRadius = UDim.new(0, 8)
+
+	local active = defaultState
+	ToggleBtn.MouseButton1Click:Connect(function()
+		active = not active
+		callback(active)
+		if active then
+			TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 120, 250)}):Play()
+			TweenService:Create(StateCircle, TweenInfo.new(0.2), {Position = UDim2.new(1, -20, 0, 3)}):Play()
+		else
+			TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}):Play()
+			TweenService:Create(StateCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 4, 0, 3)}):Play()
+		end
+	end)
+end
+
+local function CreateInputRow(page, featureText, defaultText, callback)
+	local Row = Instance.new("Frame")
+	Row.Size = UDim2.new(1, -10, 0, 40)
+	Row.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
+	Row.BorderSizePixel = 0
+	Row.Parent = page
+	Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 6)
+
+	local Label = Instance.new("TextLabel")
+	Label.Size = UDim2.new(0.5, 0, 1, 0)
+	Label.Position = UDim2.new(0, 12, 0, 0)
+	Label.BackgroundTransparency = 1
+	Label.Text = featureText
+	Label.TextColor3 = Color3.fromRGB(200, 200, 205)
+	Label.Font = Enum.Font.SourceSans
+	Label.TextSize = 14
+	Label.TextXAlignment = Enum.TextXAlignment.Left
+	Label.Parent = Row
+
+	local BoxInput = Instance.new("TextBox")
+	BoxInput.Size = UDim2.new(0, 100, 0, 26)
+	BoxInput.Position = UDim2.new(1, -112, 0, 7)
+	BoxInput.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+	BoxInput.BorderSizePixel = 0
+	BoxInput.TextColor3 = Color3.fromRGB(0, 255, 200)
+	BoxInput.Text = defaultText
+	BoxInput.Font = Enum.Font.SourceSansBold
+	BoxInput.TextSize = 14
+	BoxInput.ClearTextOnFocus = true
+	BoxInput.Parent = Row
+	Instance.new("UICorner", BoxInput).CornerRadius = UDim.new(0, 4)
+
+	BoxInput.FocusLost:Connect(function(enter)
+		callback(BoxInput.Text, enter)
+	end)
+end
+
+local function CreateButtonRow(page, btnText, callback)
+	local Row = Instance.new("Frame")
+	Row.Size = UDim2.new(1, -10, 0, 45)
+	Row.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
+	Row.BorderSizePixel = 0
+	Row.Parent = page
+	Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 6)
+
+	local Btn = Instance.new("TextButton")
+	Btn.Size = UDim2.new(1, -20, 0, 33)
+	Btn.Position = UDim2.new(0, 10, 0, 6)
+	Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+	Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Btn.Text = btnText
+	Btn.Font = Enum.Font.SourceSansBold
+	Btn.TextSize = 14
+	Btn.Parent = Row
+	Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
+
+	Btn.MouseButton1Click:Connect(callback)
+end
+
+----------------------------------------------------------------
+-- KHỞI TẠO CÁC TAB CHỨC NĂNG
+----------------------------------------------------------------
+local MainTab = CreateTab("Main Hacks")
+local StatusTab = CreateTab("Status/Configs")
+local UtilityTab = CreateTab("Utility")
+local InfoTab = CreateTab("Thông tin")
+
+Tabs["Main Hacks"].Visible = true
+TabButtons["Main Hacks"].BackgroundTransparency = 0
+TabButtons["Main Hacks"].TextColor3 = Color3.fromRGB(255, 255, 255)
+
+-- ==================== TAB 1: MAIN HACKS ====================
+CreateSectionTitle(MainTab, "Di chuyển & Tầm nhìn")
+
+CreateToggleRow(MainTab, "Xuyên tường (Noclip)", false, function(state)
+	noclip = state
+end)
+
+CreateToggleRow(MainTab, "Bay tự do (WASD)", false, function(state)
+	if not char or not humanoid then return end
+	flying = state
+	if flying then
+		humanoid.PlatformStand = true
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			if not flyAttachment then flyAttachment = Instance.new("Attachment", hrp) end
+			if not flyVelocity then 
+				flyVelocity = Instance.new("LinearVelocity", hrp)
+				flyVelocity.Attachment0 = flyAttachment
+				flyVelocity.MaxForce = math.huge
+			end
+			flyVelocity.VectorVelocity = Vector3.new(0, 0, 0)
+		end
+	else
+		humanoid.PlatformStand = false
+		if flyVelocity then flyVelocity:Destroy() flyVelocity = nil end
+		if flyAttachment then flyAttachment:Destroy() flyAttachment = nil end
+	end
+end)
+
+CreateToggleRow(MainTab, "Nhảy vô hạn (Infinite Jump)", false, function(state)
+	infJump = state
+end)
+
+-- Hệ thống ESP Xuyên tường người chơi
+local espHighlights = {}
+local function applyESP()
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= player and p.Character then
+			if espEnabled then
+				if not espHighlights[p] then
+					local hi = Instance.new("Highlight")
+					hi.Name = "ESP_NguyenDz"
+					hi.FillColor = Color3.fromRGB(255, 0, 0)
+					hi.FillTransparency = 0.5
+					hi.OutlineColor = Color3.fromRGB(255, 255, 255)
+					hi.OutlineTransparency = 0
+					hi.Adornee = p.Character
+					hi.Parent = ScreenGui
+					espHighlights[p] = hi
+				end
+			else
+				if espHighlights[p] then espHighlights[p]:Destroy() espHighlights[p] = nil end
+			end
+		end
+	end
+end
+
+CreateToggleRow(MainTab, "Nhìn xuyên tường (Player ESP)", false, function(state)
+	espEnabled = state
+	applyESP()
+end)
+
+Players.PlayerAdded:Connect(function(p)
+	p.CharacterAdded:Connect(function() task.wait(0.5) if espEnabled then applyESP() end end)
+end)
+Players.PlayerRemoving:Connect(function(p) if espHighlights[p] then espHighlights[p]:Destroy() espHighlights[p] = nil end end)
+
+-- ==================== TAB 2: STATUS/CONFIGS ====================
+CreateSectionTitle(StatusTab, "Cấu hình Nhân vật & Gian lận nâng cao")
+
+CreateInputRow(StatusTab, "Tốc độ Bay:", tostring(FlySpeed), function(text)
+	local num = tonumber(text)
+	if num then FlySpeed = math.clamp(num, 10, 500) end
+end)
+
+CreateInputRow(StatusTab, "Tốc độ Chạy bộ:", tostring(CustomSpeed), function(text)
+	local num = tonumber(text)
+	if num then 
+		CustomSpeed = math.clamp(num, 16, 500) 
+		if humanoid then humanoid.WalkSpeed = CustomSpeed end
+	end
+end)
+
+CreateInputRow(StatusTab, "Độ Cao Lực Nhảy:", tostring(CustomJump), function(text)
+	local num = tonumber(text)
+	if num then 
+		CustomJump = math.clamp(num, 50, 500) 
+		if humanoid then
+			if humanoid.UseJumpPower then humanoid.JumpPower = CustomJump else humanoid.JumpHeight = CustomJump / 7.2 end
+		end
+	end
+end)
+
+CreateToggleRow(StatusTab, "Tăng độ sáng (Fullbright)", false, function(state)
+	fullbright = state
+	if fullbright then
+		Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+		Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+	else
+		Lighting.Ambient = Color3.fromRGB(128, 128, 128)
+		Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+	end
+end)
+
+CreateToggleRow(StatusTab, "Chống choáng (Anti Stun)", false, function(state)
+	antiStun = state
+end)
+
+CreateToggleRow(StatusTab, "Chống mất máu (Anti Damage)", false, function(state)
+	antiDamage = state
+end)
+
+-- ==================== TAB 3: UTILITY ====================
+CreateSectionTitle(UtilityTab, "Hệ thống Tiện ích")
+
+CreateButtonRow(UtilityTab, "Vào lại game phòng cũ (Rejoin)", function()
+	TeleportService:Teleport(game.PlaceId, player)
+end)
+
+CreateButtonRow(UtilityTab, "Đổi sang Server khác (Server Hop)", function()
+	local servers = {}
+	local success, result = pcall(function()
+		return game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100")
+	end)
+	if success then
+		for _, s in ipairs(game:GetService("HttpService"):JSONDecode(result).data) do
+			if s.playing < s.maxPlayers and s.id ~= game.JobId then
+				TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, player)
+				break
+			end
+		end
+	end
+end)
+
+-- ==================== TAB 4: THÔNG TIN ====================
+local InfoLabel = Instance.new("TextLabel")
+InfoLabel.Size = UDim2.new(1, -20, 0, 60)
+InfoLabel.Position = UDim2.new(0, 10, 0, 20)
+InfoLabel.BackgroundTransparency = 1
+InfoLabel.Text = "The upgrade is coming soon."
+InfoLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+InfoLabel.Font = Enum.Font.SourceSansItalic
+InfoLabel.TextSize = 18
+InfoLabel.TextXAlignment = Enum.TextXAlignment.Center
+InfoLabel.Parent = InfoTab
+
+
+----------------------------------------------------------------
+-- [3] NÚT ICON TRÒN DI CHUYỂN KHẮP MÀN HÌNH
+----------------------------------------------------------------
+local OpenMenuBtn = Instance.new("TextButton")
+OpenMenuBtn.Parent = ScreenGui
+OpenMenuBtn.Size = UDim2.new(0, 44, 0, 44)
+OpenMenuBtn.Position = UDim2.new(0, 15, 0.4, 0)
+OpenMenuBtn.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
+OpenMenuBtn.Text = "N" 
+OpenMenuBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+OpenMenuBtn.Font = Enum.Font.SourceSansBold
+OpenMenuBtn.TextSize = 22
+OpenMenuBtn.Visible = false
+Instance.new("UICorner", OpenMenuBtn).CornerRadius = UDim.new(0, 22)
+
+local dragging, dragInput, dragStart, startPos
+local function update(input)
+	local delta = input.Position - dragStart
+	OpenMenuBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+OpenMenuBtn.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = OpenMenuBtn.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then dragging = false end
+		end)
+	end
+end)
+
+OpenMenuBtn.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+end)
+
+UIS.InputChanged:Connect(function(input) if input == dragInput and dragging then update(input) end end)
+
+
+-- ==================== LOGIC ĐÓNG / MỞ / XÓA ====================
+local function UnlockHackMenu()
+	QuestionFrame:Destroy()
+	MainMenu.Visible = true
+end
+Btn1.MouseButton1Click:Connect(UnlockHackMenu)
+Btn2.MouseButton1Click:Connect(UnlockHackMenu)
+
+MinimizeBtn.MouseButton1Click:Connect(function()
+	MainMenu.Visible = false
+	OpenMenuBtn.Visible = true
+end)
+
+OpenMenuBtn.MouseButton1Click:Connect(function()
+	MainMenu.Visible = true
+	OpenMenuBtn.Visible = false
+end)
+
+-- TẮT SẠCH TÍNH NĂNG KHI ẤN X
+CloseBtn.MouseButton1Click:Connect(function()
+	noclip = false
+	flying = false
+	infJump = false
+	espEnabled = false
+	fullbright = false
+	antiStun = false
+	antiDamage = false
+	
+	if flyVelocity then flyVelocity:Destroy() flyVelocity = nil end
+	if flyAttachment then flyAttachment:Destroy() flyAttachment = nil end
+	for _, hi in pairs(espHighlights) do if hi then hi:Destroy() end end
+	
+	if humanoid then 
+		humanoid.PlatformStand = false 
+		humanoid.WalkSpeed = 16 
+	end
+	
+	Lighting.Ambient = Color3.fromRGB(128, 128, 128)
+	Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+	
+	ScreenGui:Destroy()
+end)
+
+-- ==================== VÒNG LẶP HỆ THỐNG (VẬT LÝ & GIAN LẬN) ====================
+UIS.JumpRequest:Connect(function()
+	if infJump and humanoid then humanoid:ChangeState("Jumping") end
+end)
+
+RunService.Stepped:Connect(function()
+	if noclip and char then
+		for _, part in ipairs(char:GetDescendants()) do
+			if part:IsA("BasePart") then part.CanCollide = false end
+		end
+	end
+	-- Logic Chống Choáng & Chống mất máu cơ bản cấp client
+	if humanoid then
+		if antiStun and humanoid.PlatformStand then humanoid.PlatformStand = false end
+		if antiDamage and humanoid.Health < humanoid.MaxHealth then humanoid.Health = humanoid.MaxHealth end
+	end
+end)
+
+RunService.Heartbeat:Connect(function()
+	if humanoid and char and not flying then
+		if humanoid.WalkSpeed ~= CustomSpeed then humanoid.WalkSpeed = CustomSpeed end
+	end
+end)
+
+RunService.RenderStepped:Connect(function()
+	if flying and flyVelocity and char then
+		local cam = workspace.CurrentCamera
+		local moveDir = Vector3.new(0, 0, 0)
+		if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
+		if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
+		if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir + cam.CFrame.RightVector * -1 end
+		if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
+		if moveDir.Magnitude > 0 then
+			flyVelocity.VectorVelocity = moveDir.Unit * FlySpeed
+		else
+			flyVelocity.VectorVelocity = Vector3.new(0, 0, 0)
+		end
+	end
+end)

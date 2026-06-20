@@ -1,1 +1,594 @@
-local v0=game:GetService("Players");local v1=game:GetService("RunService");local v2=game:GetService("UserInputService");local v3=game:GetService("TweenService");local v4=game:GetService("Lighting");local v5=game:GetService("TeleportService");local v6=v0.LocalPlayer;local v7=v6.Character or v6.CharacterAdded:Wait() ;local v8=v7:WaitForChild("Humanoid");local v9=false;local v10=false;local v11=false;local v12=false;local v13=false;local v14=false;local v15=false;local v16=193 -143 ;local v17=16;local v18=50;local v19=nil;local v20=nil;v6.CharacterAdded:Connect(function(v174) v7=v174;v8=v174:WaitForChild("Humanoid");v10=false;v9=false;v19=nil;v20=nil;end);local v21=Instance.new("ScreenGui");v21.Name="NguyenDzHub_Menu";v21.ResetOnSpawn=false;v21.Parent=v6:WaitForChild("PlayerGui");local v25=Instance.new("Frame");v25.Parent=v21;v25.Size=UDim2.new(0,886 -586 ,0 + 0 ,150);v25.Position=UDim2.new(0.5, -(412 -262),0.5 -0 , -(1 + 74));v25.BackgroundColor3=Color3.fromRGB(24 + 6 ,1085 -(87 + 968) ,30);v25.BorderSizePixel=0;local v31=Instance.new("UICorner");v31.CornerRadius=UDim.new(0,8);v31.Parent=v25;local v34=Instance.new("TextLabel");v34.Parent=v25;v34.Size=UDim2.new(4 -3 ,0,0 + 0 ,135 -75 );v34.BackgroundTransparency=1414 -(447 + 966) ;v34.TextScaled=true;v34.TextColor3=Color3.new(2 -1 ,1818 -(1703 + 114) ,1);v34.Text="Nguyên có đẹp trai sigma ngầu lòi k?";v34.Font=Enum.Font.SourceSansBold;local v43=Instance.new("TextButton");v43.Parent=v25;v43.Size=UDim2.new(701 -(376 + 325) ,196 -76 ,0,123 -83 );v43.Position=UDim2.new(0,20,0 + 0 ,198 -108 );v43.BackgroundColor3=Color3.fromRGB(64 -(9 + 5) ,526 -(85 + 291) ,1315 -(243 + 1022) );v43.TextColor3=Color3.new(3 -2 ,1,1);v43.Font=Enum.Font.SourceSansBold;v43.TextSize=18;v43.Text="Có";Instance.new("UICorner",v43).CornerRadius=UDim.new(0 + 0 ,6);local v53=Instance.new("TextButton");v53.Parent=v25;v53.Size=UDim2.new(1180 -(1123 + 57) ,98 + 22 ,254 -(163 + 91) ,1970 -(1869 + 61) );v53.Position=UDim2.new(0 + 0 ,563 -403 ,0 -0 ,13 + 77 );v53.BackgroundColor3=Color3.fromRGB(50,206 -56 ,47 + 3 );v53.TextColor3=Color3.new(1,1475 -(1329 + 145) ,1);v53.Font=Enum.Font.SourceSansBold;v53.TextSize=18;v53.Text="Có";Instance.new("UICorner",v53).CornerRadius=UDim.new(971 -(140 + 831) ,1856 -(1409 + 441) );local v63=Instance.new("Frame");v63.Parent=v21;v63.Size=UDim2.new(718 -(15 + 703) ,550,0,163 + 187 );v63.Position=UDim2.new(438.5 -(262 + 176) , -275,1721.5 -(345 + 1376) , -(863 -(198 + 490)));v63.BackgroundColor3=Color3.fromRGB(79 -61 ,42 -24 ,1226 -(696 + 510) );v63.BorderSizePixel=0 -0 ;v63.Active=true;v63.Draggable=true;v63.Visible=false;local v72=Instance.new("UICorner");v72.CornerRadius=UDim.new(1262 -(1091 + 171) ,2 + 8 );v72.Parent=v63;local v75=Instance.new("Frame");v75.Parent=v63;v75.Size=UDim2.new(3 -2 ,0,0,132 -92 );v75.BackgroundTransparency=375 -(123 + 251) ;local v79=Instance.new("TextLabel");v79.Parent=v75;v79.Size=UDim2.new(1, -90,4 -3 ,0);v79.Position=UDim2.new(698 -(208 + 490) ,15,0,0);v79.BackgroundTransparency=1;v79.Text="NguyenDzHub : Nguyên Sigma Edition";v79.TextColor3=Color3.fromRGB(19 + 201 ,220,225);v79.Font=Enum.Font.SourceSansBold;v79.TextSize=15;v79.TextXAlignment=Enum.TextXAlignment.Left;local v90=Instance.new("TextButton");v90.Parent=v75;v90.Size=UDim2.new(0 + 0 ,866 -(660 + 176) ,0 + 0 ,232 -(14 + 188) );v90.Position=UDim2.new(676 -(534 + 141) , -(29 + 41),0 + 0 ,5 + 0 );v90.BackgroundTransparency=1 -0 ;v90.TextColor3=Color3.fromRGB(238 -88 ,420 -270 ,86 + 74 );v90.Text="—";v90.Font=Enum.Font.SourceSansBold;v90.TextSize=16;local v99=Instance.new("TextButton");v99.Parent=v75;v99.Size=UDim2.new(0,20 + 10 ,396 -(115 + 281) ,69 -39 );v99.Position=UDim2.new(1 + 0 , -(84 -49),0 -0 ,872 -(550 + 317) );v99.BackgroundTransparency=1 -0 ;v99.TextColor3=Color3.fromRGB(255,70,70);v99.Text="X";v99.Font=Enum.Font.SourceSansBold;v99.TextSize=22 -6 ;local v108=Instance.new("ScrollingFrame");v108.Parent=v63;v108.Size=UDim2.new(0,447 -287 ,286 -(134 + 151) , -45);v108.Position=UDim2.new(1665 -(970 + 695) ,19 -9 ,0,2030 -(582 + 1408) );v108.BackgroundTransparency=1;v108.CanvasSize=UDim2.new(0,0 -0 ,0 -0 ,400);v108.ScrollBarThickness=0 -0 ;local v115=Instance.new("UIListLayout");v115.Parent=v108;v115.Padding=UDim.new(1824 -(1195 + 629) ,6 -1 );local v118=Instance.new("Frame");v118.Parent=v63;v118.Size=UDim2.new(0,1,1, -55);v118.Position=UDim2.new(0,416 -(187 + 54) ,780 -(162 + 618) ,45);v118.BackgroundColor3=Color3.fromRGB(45,32 + 13 ,50);v118.BorderSizePixel=0 + 0 ;local v124=Instance.new("Frame");v124.Parent=v63;v124.Size=UDim2.new(1, -(405 -215),1 -0 , -(4 + 46));v124.Position=UDim2.new(1636 -(1373 + 263) ,1185 -(451 + 549) ,0 + 0 ,62 -22 );v124.BackgroundTransparency=1 -0 ;local v129={};local v130={};local function v131(v175) local v176=1384 -(746 + 638) ;local v177;local v178;local v179;while true do if (v176==2) then v177.Visible=false;v177.Parent=v124;v178=Instance.new("UIListLayout");v176=2 + 1 ;end if (v176==(5 -1)) then v179.Size=UDim2.new(342 -(218 + 123) , -(1586 -(1535 + 46)),0,35 + 0 );v179.BackgroundColor3=Color3.fromRGB(5 + 23 ,588 -(306 + 254) ,2 + 30 );v179.BackgroundTransparency=1;v176=9 -4 ;end if (v176==(1470 -(899 + 568))) then v178.Parent=v177;v178.Padding=UDim.new(0 + 0 ,8);v179=Instance.new("TextButton");v176=9 -5 ;end if (v176==(604 -(268 + 335))) then v177.CanvasSize=UDim2.new(290 -(60 + 230) ,572 -(426 + 146) ,0,550);v177.ScrollBarThickness=2;v177.ScrollBarImageColor3=Color3.fromRGB(50,6 + 44 ,1511 -(282 + 1174) );v176=2;end if ((817 -(569 + 242))==v176) then v179.TextSize=40 -26 ;v179.TextXAlignment=Enum.TextXAlignment.Left;v179.Parent=v108;v176=1 + 6 ;end if (v176==7) then Instance.new("UICorner",v179).CornerRadius=UDim.new(0,1030 -(706 + 318) );v129[v175]=v177;v130[v175]=v179;v176=8;end if (5==v176) then v179.TextColor3=Color3.fromRGB(150,1401 -(721 + 530) ,155);v179.Text="  "   .. v175 ;v179.Font=Enum.Font.SourceSansBold;v176=6;end if (v176==0) then v177=Instance.new("ScrollingFrame");v177.Size=UDim2.new(1,1271 -(945 + 326) ,2 -1 ,0);v177.BackgroundTransparency=1;v176=1;end if (v176==(8 + 0)) then v179.MouseButton1Click:Connect(function() for v370,v371 in pairs(v129) do v371.Visible=false;end for v373,v374 in pairs(v130) do local v375=700 -(271 + 429) ;while true do if (v375==(0 + 0)) then v374.BackgroundTransparency=1501 -(1408 + 92) ;v374.TextColor3=Color3.fromRGB(150,1236 -(461 + 625) ,1443 -(993 + 295) );break;end end end v177.Visible=true;v179.BackgroundTransparency=0 + 0 ;v179.TextColor3=Color3.fromRGB(1426 -(418 + 753) ,98 + 157 ,27 + 228 );end);return v177;end end end local function v132(v180,v181) local v182=0 + 0 ;local v183;while true do if (v182==(1 + 2)) then v183.TextSize=545 -(406 + 123) ;v183.TextXAlignment=Enum.TextXAlignment.Left;v182=4;end if (v182==(1771 -(1749 + 20))) then v183.TextColor3=Color3.fromRGB(255,255,61 + 194 );v183.Font=Enum.Font.SourceSansBold;v182=1325 -(1249 + 73) ;end if (v182==(2 + 2)) then v183.Parent=v180;break;end if (v182==(1146 -(466 + 679))) then v183.BackgroundTransparency=2 -1 ;v183.Text=v181;v182=5 -3 ;end if (v182==(1900 -(106 + 1794))) then v183=Instance.new("TextLabel");v183.Size=UDim2.new(1,0 + 0 ,0,25);v182=1;end end end local function v133(v184,v185,v186,v187) local v188=0;local v189;local v190;local v191;local v192;local v193;while true do if (v188==(0 + 0)) then v189=Instance.new("Frame");v189.Size=UDim2.new(1, -10,0 -0 ,108 -68 );v189.BackgroundColor3=Color3.fromRGB(138 -(4 + 110) ,24,612 -(57 + 527) );v189.BorderSizePixel=1427 -(41 + 1386) ;v189.Parent=v184;v188=1;end if (v188==(105 -(17 + 86))) then v190.Text=v185;v190.TextColor3=Color3.fromRGB(200,136 + 64 ,457 -252 );v190.Font=Enum.Font.SourceSans;v190.TextSize=14;v190.TextXAlignment=Enum.TextXAlignment.Left;v188=8 -5 ;end if (v188==3) then v190.Parent=v189;v191=Instance.new("TextButton");v191.Size=UDim2.new(0,211 -(122 + 44) ,0,37 -15 );v191.Position=UDim2.new(3 -2 , -(45 + 10),0,2 + 7 );v191.BackgroundColor3=(v186 and Color3.fromRGB(101 -51 ,185 -(30 + 35) ,172 + 78 )) or Color3.fromRGB(1302 -(1043 + 214) ,45,189 -139 ) ;v188=4;end if (v188==(1218 -(323 + 889))) then v191.MouseButton1Click:Connect(function() v193= not v193;v187(v193);if v193 then v3:Create(v191,TweenInfo.new(0.2 -0 ),{BackgroundColor3=Color3.fromRGB(630 -(361 + 219) ,440 -(53 + 267) ,57 + 193 )}):Play();v3:Create(v192,TweenInfo.new(413.2 -(15 + 398) ),{Position=UDim2.new(983 -(18 + 964) , -(75 -55),0,3)}):Play();else v3:Create(v191,TweenInfo.new(0.2 + 0 ),{BackgroundColor3=Color3.fromRGB(29 + 16 ,895 -(20 + 830) ,50)}):Play();v3:Create(v192,TweenInfo.new(0.2),{Position=UDim2.new(0,4 + 0 ,0,129 -(116 + 10) )}):Play();end end);break;end if (v188==1) then Instance.new("UICorner",v189).CornerRadius=UDim.new(0 + 0 ,6);v190=Instance.new("TextLabel");v190.Size=UDim2.new(0.7,0,1,738 -(542 + 196) );v190.Position=UDim2.new(0,25 -13 ,0,0 + 0 );v190.BackgroundTransparency=1 + 0 ;v188=1 + 1 ;end if (v188==4) then v191.Text="";v191.Parent=v189;Instance.new("UICorner",v191).CornerRadius=UDim.new(0,28 -17 );v192=Instance.new("Frame");v192.Size=UDim2.new(0 -0 ,16,1551 -(1126 + 425) ,421 -(118 + 287) );v188=19 -14 ;end if (v188==(1126 -(118 + 1003))) then v192.Position=(v186 and UDim2.new(2 -1 , -(397 -(142 + 235)),0 -0 ,1 + 2 )) or UDim2.new(0,4,977 -(553 + 424) ,5 -2 ) ;v192.BackgroundColor3=Color3.fromRGB(225 + 30 ,253 + 2 ,255);v192.Parent=v191;Instance.new("UICorner",v192).CornerRadius=UDim.new(0,5 + 3 );v193=v186;v188=3 + 3 ;end end end local function v134(v194,v195,v196,v197) local v198=0 + 0 ;local v199;local v200;local v201;while true do if (v198==0) then v199=Instance.new("Frame");v199.Size=UDim2.new(2 -1 , -(27 -17),0 -0 ,12 + 28 );v199.BackgroundColor3=Color3.fromRGB(24,24,28);v198=4 -3 ;end if (v198==(757 -(239 + 514))) then v200.Font=Enum.Font.SourceSans;v200.TextSize=5 + 9 ;v200.TextXAlignment=Enum.TextXAlignment.Left;v198=1334 -(797 + 532) ;end if ((5 + 1)==v198) then v201.Position=UDim2.new(1 + 0 , -(262 -150),0,7);v201.BackgroundColor3=Color3.fromRGB(1237 -(373 + 829) ,766 -(476 + 255) ,40);v201.BorderSizePixel=1130 -(369 + 761) ;v198=7;end if ((5 + 3)==v198) then v201.TextSize=24 -10 ;v201.ClearTextOnFocus=true;v201.Parent=v199;v198=16 -7 ;end if (v198==(239 -(64 + 174))) then v199.BorderSizePixel=0 + 0 ;v199.Parent=v194;Instance.new("UICorner",v199).CornerRadius=UDim.new(0 -0 ,342 -(144 + 192) );v198=218 -(42 + 174) ;end if ((6 + 1)==v198) then v201.TextColor3=Color3.fromRGB(0 + 0 ,109 + 146 ,200);v201.Text=v196;v201.Font=Enum.Font.SourceSansBold;v198=1512 -(363 + 1141) ;end if (v198==3) then v200.BackgroundTransparency=1581 -(1183 + 397) ;v200.Text=v195;v200.TextColor3=Color3.fromRGB(608 -408 ,200,151 + 54 );v198=3 + 1 ;end if ((1984 -(1913 + 62))==v198) then Instance.new("UICorner",v201).CornerRadius=UDim.new(0 + 0 ,10 -6 );v201.FocusLost:Connect(function(v364) v197(v201.Text,v364);end);break;end if (v198==(1935 -(565 + 1368))) then v200=Instance.new("TextLabel");v200.Size=UDim2.new(0.5 -0 ,1661 -(1477 + 184) ,1 -0 ,0 + 0 );v200.Position=UDim2.new(856 -(564 + 292) ,20 -8 ,0 -0 ,304 -(244 + 60) );v198=3 + 0 ;end if (v198==(481 -(41 + 435))) then v200.Parent=v199;v201=Instance.new("TextBox");v201.Size=UDim2.new(0,1101 -(938 + 63) ,0 + 0 ,26);v198=1131 -(936 + 189) ;end end end local function v135(v202,v203,v204) local v205=Instance.new("Frame");v205.Size=UDim2.new(1, -(4 + 6),1613 -(1565 + 48) ,28 + 17 );v205.BackgroundColor3=Color3.fromRGB(24,1162 -(782 + 356) ,295 -(176 + 91) );v205.BorderSizePixel=0 -0 ;v205.Parent=v202;Instance.new("UICorner",v205).CornerRadius=UDim.new(0 -0 ,1098 -(975 + 117) );local v211=Instance.new("TextButton");v211.Size=UDim2.new(1876 -(157 + 1718) , -(17 + 3),0 -0 ,112 -79 );v211.Position=UDim2.new(1018 -(697 + 321) ,27 -17 ,0,6);v211.BackgroundColor3=Color3.fromRGB(95 -50 ,103 -58 ,50);v211.TextColor3=Color3.fromRGB(100 + 155 ,255,255);v211.Text=v203;v211.Font=Enum.Font.SourceSansBold;v211.TextSize=14;v211.Parent=v205;Instance.new("UICorner",v211).CornerRadius=UDim.new(0 -0 ,15 -9 );v211.MouseButton1Click:Connect(v204);end local v136=v131("Main Hacks");local v137=v131("Status/Configs");local v138=v131("Utility");local v139=v131("Thông tin");v129["Main Hacks"].Visible=true;v130["Main Hacks"].BackgroundTransparency=0;v130["Main Hacks"].TextColor3=Color3.fromRGB(1482 -(322 + 905) ,255,255);v132(v136,"Di chuyển & Tầm nhìn");v133(v136,"Xuyên tường (Noclip)",false,function(v222) v9=v222;end);v133(v136,"Bay tự do (WASD)",false,function(v223) if ( not v7 or  not v8) then return;end v10=v223;if v10 then local v259=611 -(602 + 9) ;local v260;while true do if (v259==(1190 -(449 + 740))) then if v260 then if  not v19 then v19=Instance.new("Attachment",v260);end if  not v20 then v20=Instance.new("LinearVelocity",v260);v20.Attachment0=v19;v20.MaxForce=math.huge;end v20.VectorVelocity=Vector3.new(872 -(826 + 46) ,947 -(245 + 702) ,0);end break;end if (v259==0) then v8.PlatformStand=true;v260=v7:FindFirstChild("HumanoidRootPart");v259=3 -2 ;end end else local v261=0 + 0 ;while true do if (v261==(1899 -(260 + 1638))) then if v19 then local v391=0;while true do if (v391==0) then v19:Destroy();v19=nil;break;end end end break;end if (v261==(440 -(382 + 58))) then v8.PlatformStand=false;if v20 then local v392=0;while true do if (v392==(0 -0)) then v20:Destroy();v20=nil;break;end end end v261=1;end end end end);v133(v136,"Nhảy vô hạn (Infinite Jump)",false,function(v224) v11=v224;end);local v143={};local function v144() for v256,v257 in ipairs(v0:GetPlayers()) do if ((v257~=v6) and v257.Character) then if v12 then if  not v143[v257] then local v393=0;local v394;while true do if (v393==(4 + 0)) then v143[v257]=v394;break;end if (v393==(3 -1)) then v394.OutlineColor=Color3.fromRGB(757 -502 ,1460 -(902 + 303) ,559 -304 );v394.OutlineTransparency=0 -0 ;v393=1 + 2 ;end if (v393==(1693 -(1121 + 569))) then v394.Adornee=v257.Character;v394.Parent=v21;v393=4;end if (v393==(214 -(22 + 192))) then v394=Instance.new("Highlight");v394.Name="ESP_NguyenDz";v393=684 -(483 + 200) ;end if (v393==(1464 -(1404 + 59))) then v394.FillColor=Color3.fromRGB(255,0,0 -0 );v394.FillTransparency=0.5 -0 ;v393=2;end end end elseif v143[v257] then v143[v257]:Destroy();v143[v257]=nil;end end end end v133(v136,"Nhìn xuyên tường (Player ESP)",false,function(v225) v12=v225;v144();end);v0.PlayerAdded:Connect(function(v226) v226.CharacterAdded:Connect(function() local v258=765 -(468 + 297) ;while true do if (v258==(562 -(334 + 228))) then task.wait(0.5 -0 );if v12 then v144();end break;end end end);end);v0.PlayerRemoving:Connect(function(v227) if v143[v227] then local v262=0 -0 ;while true do if (v262==(0 -0)) then v143[v227]:Destroy();v143[v227]=nil;break;end end end end);v132(v137,"Cấu hình Nhân vật & Gian lận nâng cao");v134(v137,"Tốc độ Bay:",tostring(v16),function(v228) local v229=0;local v230;while true do if (v229==(0 + 0)) then v230=tonumber(v228);if v230 then v16=math.clamp(v230,246 -(141 + 95) ,500);end break;end end end);v134(v137,"Tốc độ Chạy bộ:",tostring(v17),function(v231) local v232=0 + 0 ;local v233;while true do if (v232==(0 -0)) then v233=tonumber(v231);if v233 then local v379=0;while true do if (v379==(0 -0)) then v17=math.clamp(v233,4 + 12 ,1369 -869 );if v8 then v8.WalkSpeed=v17;end break;end end end break;end end end);v134(v137,"Độ Cao Lực Nhảy:",tostring(v18),function(v234) local v235=0;local v236;while true do if (v235==0) then v236=tonumber(v234);if v236 then local v380=0;while true do if (v380==(0 + 0)) then v18=math.clamp(v236,50,261 + 239 );if v8 then if v8.UseJumpPower then v8.JumpPower=v18;else v8.JumpHeight=v18/(9.2 -2) ;end end break;end end end break;end end end);v133(v137,"Tăng độ sáng (Fullbright)",false,function(v237) v13=v237;if v13 then local v263=0 + 0 ;while true do if (v263==0) then v4.Ambient=Color3.fromRGB(418 -(92 + 71) ,126 + 129 ,255);v4.OutdoorAmbient=Color3.fromRGB(428 -173 ,1020 -(574 + 191) ,211 + 44 );break;end end else local v264=0 -0 ;while true do if (v264==(0 + 0)) then v4.Ambient=Color3.fromRGB(128,128,977 -(254 + 595) );v4.OutdoorAmbient=Color3.fromRGB(254 -(55 + 71) ,168 -40 ,1918 -(573 + 1217) );break;end end end end);v133(v137,"Chống choáng (Anti Stun)",false,function(v238) v14=v238;end);v133(v137,"Chống mất máu (Anti Damage)",false,function(v239) v15=v239;end);v132(v138,"Hệ thống Tiện ích");v135(v138,"Vào lại game phòng cũ (Rejoin)",function() v5:Teleport(game.PlaceId,v6);end);v135(v138,"Đổi sang Server khác (Server Hop)",function() local v240={};local v241,v242=pcall(function() return game:HttpGet("https://games.roblox.com/v1/games/"   .. game.PlaceId   .. "/servers/Public?sortOrder=Asc&limit=100" );end);if v241 then for v357,v358 in ipairs(game:GetService("HttpService"):JSONDecode(v242).data) do if ((v358.playing<v358.maxPlayers) and (v358.id~=game.JobId)) then v5:TeleportToPlaceInstance(game.PlaceId,v358.id,v6);break;end end end end);local v145=Instance.new("TextLabel");v145.Size=UDim2.new(2 -1 , -20,0,5 + 55 );v145.Position=UDim2.new(0 -0 ,949 -(714 + 225) ,0 -0 ,20);v145.BackgroundTransparency=1 -0 ;v145.Text="The upgrade is coming soon.";v145.TextColor3=Color3.fromRGB(0 + 0 ,368 -113 ,150);v145.Font=Enum.Font.SourceSansItalic;v145.TextSize=824 -(118 + 688) ;v145.TextXAlignment=Enum.TextXAlignment.Center;v145.Parent=v139;local v157=Instance.new("TextButton");v157.Parent=v21;v157.Size=UDim2.new(48 -(25 + 23) ,9 + 35 ,0,1930 -(927 + 959) );v157.Position=UDim2.new(0 -0 ,747 -(16 + 716) ,0.4,0 -0 );v157.BackgroundColor3=Color3.fromRGB(24,121 -(11 + 86) ,28);v157.Text="N";v157.TextColor3=Color3.fromRGB(255,50,121 -71 );v157.Font=Enum.Font.SourceSansBold;v157.TextSize=307 -(175 + 110) ;v157.Visible=false;Instance.new("UICorner",v157).CornerRadius=UDim.new(0 -0 ,22);local v168,v169,v170,v171;local function v172(v243) local v244=v243.Position-v170 ;v157.Position=UDim2.new(v171.X.Scale,v171.X.Offset + v244.X ,v171.Y.Scale,v171.Y.Offset + v244.Y );end v157.InputBegan:Connect(function(v246) if ((v246.UserInputType==Enum.UserInputType.MouseButton1) or (v246.UserInputType==Enum.UserInputType.Touch)) then v168=true;v170=v246.Position;v171=v157.Position;v246.Changed:Connect(function() if (v246.UserInputState==Enum.UserInputState.End) then v168=false;end end);end end);v157.InputChanged:Connect(function(v247) if ((v247.UserInputType==Enum.UserInputType.MouseMovement) or (v247.UserInputType==Enum.UserInputType.Touch)) then v169=v247;end end);v2.InputChanged:Connect(function(v248) if ((v248==v169) and v168) then v172(v248);end end);local function v173() v25:Destroy();v63.Visible=true;end v43.MouseButton1Click:Connect(v173);v53.MouseButton1Click:Connect(v173);v90.MouseButton1Click:Connect(function() v63.Visible=false;v157.Visible=true;end);v157.MouseButton1Click:Connect(function() v63.Visible=true;v157.Visible=false;end);v99.MouseButton1Click:Connect(function() local v254=0;while true do if (v254==(4 -3)) then v12=false;v13=false;v14=false;v254=1798 -(503 + 1293) ;end if ((0 -0)==v254) then v9=false;v10=false;v11=false;v254=1 + 0 ;end if (v254==3) then for v365,v366 in pairs(v143) do if v366 then v366:Destroy();end end if v8 then v8.PlatformStand=false;v8.WalkSpeed=1077 -(810 + 251) ;end v4.Ambient=Color3.fromRGB(89 + 39 ,40 + 88 ,128);v254=4 + 0 ;end if (v254==(537 -(43 + 490))) then v4.OutdoorAmbient=Color3.fromRGB(861 -(711 + 22) ,495 -367 ,128);v21:Destroy();break;end if (v254==2) then v15=false;if v20 then v20:Destroy();v20=nil;end if v19 then v19:Destroy();v19=nil;end v254=3;end end end);v2.JumpRequest:Connect(function() if (v11 and v8) then v8:ChangeState("Jumping");end end);v1.Stepped:Connect(function() local v255=0;while true do if ((859 -(240 + 619))==v255) then if (v9 and v7) then for v388,v389 in ipairs(v7:GetDescendants()) do if v389:IsA("BasePart") then v389.CanCollide=false;end end end if v8 then local v387=0 + 0 ;while true do if ((0 -0)==v387) then if (v14 and v8.PlatformStand) then v8.PlatformStand=false;end if (v15 and (v8.Health<v8.MaxHealth)) then v8.Health=v8.MaxHealth;end break;end end end break;end end end);v1.Heartbeat:Connect(function() if (v8 and v7 and  not v10) then if (v8.WalkSpeed~=v17) then v8.WalkSpeed=v17;end end end);v1.RenderStepped:Connect(function() if (v10 and v20 and v7) then local v267=workspace.CurrentCamera;local v268=Vector3.new(0 + 0 ,1744 -(1344 + 400) ,405 -(255 + 150) );if v2:IsKeyDown(Enum.KeyCode.W) then v268=v268 + v267.CFrame.LookVector ;end if v2:IsKeyDown(Enum.KeyCode.S) then v268=v268-v267.CFrame.LookVector ;end if v2:IsKeyDown(Enum.KeyCode.A) then v268=v268 + (v267.CFrame.RightVector *  -(1 + 0)) ;end if v2:IsKeyDown(Enum.KeyCode.D) then v268=v268 + v267.CFrame.RightVector ;end if (v268.Magnitude>(0 + 0)) then v20.VectorVelocity=v268.Unit * v16 ;else v20.VectorVelocity=Vector3.new(0 -0 ,0 -0 ,0);end end end);
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+local TeleportService = game:GetService("TeleportService")
+
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local humanoid = char:WaitForChild("Humanoid")
+
+-- ==================== HỆ THỐNG BIẾN QUẢN LÝ TÍNH NĂNG ====================
+local noclip = false
+local flying = false
+local infJump = false
+local espEnabled = false
+local npcEspEnabled = false
+local fullbright = false
+local antiStun = false
+local antiDamage = false
+local freeCamEnabled = false
+
+local FlySpeed = 50
+local CustomSpeed = 16
+local CustomJump = 50
+
+local flyAttachment = nil
+local flyVelocity = nil
+local freeCamPart = nil
+
+-- Quản lý màu sắc chủ đạo (Theme Color)
+local ThemeColor = Color3.fromRGB(255, 50, 50) -- Mặc định là đỏ đỏ Sigma
+local ObjectsToTheme = {}
+
+local function UpdateTheme(newColor)
+	ThemeColor = newColor
+	for obj, prop in pairs(ObjectsToTheme) do
+		if obj and obj.Parent then
+			obj[prop] = newColor
+		else
+			ObjectsToTheme[obj] = nil
+		end
+	end
+end
+
+player.CharacterAdded:Connect(function(newChar)
+	char = newChar
+	humanoid = newChar:WaitForChild("Humanoid")
+	flying = false
+	noclip = false
+	flyAttachment = nil
+	flyVelocity = nil
+end)
+
+-- ==================== HỆ THỐNG GIAO DIỆN (GUI) ====================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "NguyenDzHub_Menu_v3"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+----------------------------------------------------------------
+-- [1] CỬA SỔ CÂU HỎI BẤT BUỘC (Mờ mờ ảo ảo)
+----------------------------------------------------------------
+local QuestionFrame = Instance.new("Frame")
+QuestionFrame.Parent = ScreenGui
+QuestionFrame.Size = UDim2.new(0, 320, 0, 160)
+QuestionFrame.Position = UDim2.new(0.5, -160, 0.5, -80)
+QuestionFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+QuestionFrame.BackgroundTransparency = 0.15 -- Tạo độ mờ
+Instance.new("UICorner", QuestionFrame).CornerRadius = UDim.new(0, 10)
+
+local Question = Instance.new("TextLabel")
+Question.Parent = QuestionFrame
+Question.Size = UDim2.new(1, 0, 0, 60)
+Question.BackgroundTransparency = 1
+Question.TextScaled = true
+Question.TextColor3 = Color3.new(1, 1, 1)
+Question.Text = "Nguyên có đẹp trai sigma ngầu lòi k?"
+Question.Font = Enum.Font.SourceSansBold
+
+local Btn1 = Instance.new("TextButton")
+Btn1.Parent = QuestionFrame
+Btn1.Size = UDim2.new(0, 120, 0, 40)
+Btn1.Position = UDim2.new(0, 25, 0, 95)
+Btn1.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+Btn1.TextColor3 = Color3.new(1, 1, 1)
+Btn1.Font = Enum.Font.SourceSansBold
+Btn1.TextSize = 18
+Btn1.Text = "Có"
+Instance.new("UICorner", Btn1).CornerRadius = UDim.new(0, 6)
+
+local Btn2 = Instance.new("TextButton")
+Btn2.Parent = QuestionFrame
+Btn2.Size = UDim2.new(0, 120, 0, 40)
+Btn2.Position = UDim2.new(0, 175, 0, 95)
+Btn2.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+Btn2.TextColor3 = Color3.new(1, 1, 1)
+Btn2.Font = Enum.Font.SourceSansBold
+Btn2.TextSize = 18
+Btn2.Text = "Có"
+Instance.new("UICorner", Btn2).CornerRadius = UDim.new(0, 6)
+
+----------------------------------------------------------------
+-- [2] MENU CHÍNH (GIAO DIỆN MỜ ACRYLIC & PHẦN ĐỔI MÀU)
+----------------------------------------------------------------
+local MainMenu = Instance.new("Frame")
+MainMenu.Parent = ScreenGui
+MainMenu.Size = UDim2.new(0, 560, 0, 360)
+MainMenu.Position = UDim2.new(0.5, -280, 0.5, -180)
+MainMenu.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+MainMenu.BackgroundTransparency = 0.15 -- Nền kính mờ Acrylic ảo diệu
+MainMenu.Active = true
+MainMenu.Draggable = true 
+MainMenu.Visible = false
+Instance.new("UICorner", MainMenu).CornerRadius = UDim.new(0, 12)
+
+-- Thanh tiêu đề
+local TopBar = Instance.new("Frame")
+TopBar.Parent = MainMenu
+TopBar.Size = UDim2.new(1, 0, 0, 40)
+TopBar.BackgroundTransparency = 1
+
+local TitleText = Instance.new("TextLabel")
+TitleText.Parent = TopBar
+TitleText.Size = UDim2.new(1, -90, 1, 0)
+TitleText.Position = UDim2.new(0, 15, 0, 0)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "NguyenDzHub : Nguyên Sigma Edition v3.0" 
+TitleText.TextColor3 = Color3.fromRGB(240, 240, 245)
+TitleText.Font = Enum.Font.SourceSansBold
+TitleText.TextSize = 15
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Nút ẩn menu
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Parent = TopBar
+MinimizeBtn.Size = UDim2.new(0, 30, 0, 30)
+MinimizeBtn.Position = UDim2.new(1, -70, 0, 5)
+MinimizeBtn.BackgroundTransparency = 1
+MinimizeBtn.TextColor3 = Color3.fromRGB(160, 160, 170)
+MinimizeBtn.Text = "—"
+MinimizeBtn.Font = Enum.Font.SourceSansBold
+MinimizeBtn.TextSize = 16
+
+-- Nút xóa menu hoàn toàn
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Parent = TopBar
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.TextColor3 = Color3.fromRGB(255, 75, 75) 
+CloseBtn.Text = "X"
+CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.TextSize = 16
+
+-- Sidebar bên trái
+local Sidebar = Instance.new("ScrollingFrame")
+Sidebar.Parent = MainMenu
+Sidebar.Size = UDim2.new(0, 160, 1, -50)
+Sidebar.Position = UDim2.new(0, 10, 0, 45)
+Sidebar.BackgroundTransparency = 1
+Sidebar.CanvasSize = UDim2.new(0, 0, 0, 400)
+Sidebar.ScrollBarThickness = 0
+
+local SidebarLayout = Instance.new("UIListLayout")
+SidebarLayout.Parent = Sidebar
+SidebarLayout.Padding = UDim.new(0, 5)
+
+-- Vạch kẻ ngăn cách dọc
+local Divider = Instance.new("Frame")
+Divider.Parent = MainMenu
+Divider.Size = UDim2.new(0, 1, 1, -60)
+Divider.Position = UDim2.new(0, 175, 0, 50)
+Divider.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+Divider.BorderSizePixel = 0
+
+-- Khung chứa nội dung các Tab bên phải
+local ContentContainer = Instance.new("Frame")
+ContentContainer.Parent = MainMenu
+ContentContainer.Size = UDim2.new(1, -190, 1, -55)
+ContentContainer.Position = UDim2.new(0, 185, 0, 45)
+ContentContainer.BackgroundTransparency = 1
+
+local Tabs = {}
+local TabButtons = {}
+
+local function CreateTab(tabName)
+	local TabPage = Instance.new("ScrollingFrame")
+	TabPage.Size = UDim2.new(1, 0, 1, 0)
+	TabPage.BackgroundTransparency = 1
+	TabPage.CanvasSize = UDim2.new(0, 0, 0, 600)
+	TabPage.ScrollBarThickness = 2
+	TabPage.ScrollBarImageColor3 = Color3.fromRGB(60, 60, 65)
+	TabPage.Visible = false
+	TabPage.Parent = ContentContainer
+
+	local PageLayout = Instance.new("UIListLayout")
+	PageLayout.Parent = TabPage
+	PageLayout.Padding = UDim.new(0, 8)
+	
+	local TabBtn = Instance.new("TextButton")
+	TabBtn.Size = UDim2.new(1, -5, 0, 35)
+	TabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+	TabBtn.BackgroundTransparency = 1
+	TabBtn.TextColor3 = Color3.fromRGB(160, 160, 165)
+	TabBtn.Text = "  " .. tabName
+	TabBtn.Font = Enum.Font.SourceSansBold
+	TabBtn.TextSize = 14
+	TabBtn.TextXAlignment = Enum.TextXAlignment.Left
+	TabBtn.Parent = Sidebar
+	Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 6)
+
+	Tabs[tabName] = TabPage
+	TabButtons[tabName] = TabBtn
+
+	TabBtn.MouseButton1Click:Connect(function()
+		for _, page in pairs(Tabs) do page.Visible = false end
+		for _, btn in pairs(TabButtons) do 
+			btn.BackgroundTransparency = 1 
+			btn.TextColor3 = Color3.fromRGB(160, 160, 165)
+		end
+		TabPage.Visible = true
+		TabBtn.BackgroundTransparency = 0.4
+		TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	end)
+
+	return TabPage
+end
+
+local function CreateSectionTitle(page, titleText)
+	local Label = Instance.new("TextLabel")
+	Label.Size = UDim2.new(1, 0, 0, 25)
+	Label.BackgroundTransparency = 1
+	Label.Text = titleText
+	Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Label.Font = Enum.Font.SourceSansBold
+	Label.TextSize = 16
+	Label.TextXAlignment = Enum.TextXAlignment.Left
+	Label.Parent = page
+end
+
+local function CreateToggleRow(page, featureText, defaultState, callback)
+	local Row = Instance.new("Frame")
+	Row.Size = UDim2.new(1, -10, 0, 40)
+	Row.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+	Row.BackgroundTransparency = 0.3 -- Hiệu ứng hàng mờ nhẹ
+	Row.BorderSizePixel = 0
+	Row.Parent = page
+	Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 6)
+
+	local Label = Instance.new("TextLabel")
+	Label.Size = UDim2.new(0.7, 0, 1, 0)
+	Label.Position = UDim2.new(0, 12, 0, 0)
+	Label.BackgroundTransparency = 1
+	Label.Text = featureText
+	Label.TextColor3 = Color3.fromRGB(210, 210, 215)
+	Label.Font = Enum.Font.SourceSans
+	Label.TextSize = 14
+	Label.TextXAlignment = Enum.TextXAlignment.Left
+	Label.Parent = Row
+
+	local ToggleBtn = Instance.new("TextButton")
+	ToggleBtn.Size = UDim2.new(0, 45, 0, 22)
+	ToggleBtn.Position = UDim2.new(1, -55, 0, 9)
+	ToggleBtn.BackgroundColor3 = defaultState and ThemeColor or Color3.fromRGB(50, 50, 55)
+	ToggleBtn.Text = ""
+	ToggleBtn.Parent = Row
+	Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 11)
+	if defaultState then ObjectsToTheme[ToggleBtn] = "BackgroundColor3" end
+
+	local StateCircle = Instance.new("Frame")
+	StateCircle.Size = UDim2.new(0, 16, 0, 16)
+	StateCircle.Position = defaultState and UDim2.new(1, -20, 0, 3) or UDim2.new(0, 4, 0, 3)
+	StateCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	StateCircle.Parent = ToggleBtn
+	Instance.new("UICorner", StateCircle).CornerRadius = UDim.new(0, 8)
+
+	local active = defaultState
+	ToggleBtn.MouseButton1Click:Connect(function()
+		active = not active
+		callback(active)
+		if active then
+			ObjectsToTheme[ToggleBtn] = "BackgroundColor3"
+			TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = ThemeColor}):Play()
+			TweenService:Create(StateCircle, TweenInfo.new(0.2), {Position = UDim2.new(1, -20, 0, 3)}):Play()
+		else
+			ObjectsToTheme[ToggleBtn] = nil
+			TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
+			TweenService:Create(StateCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 4, 0, 3)}):Play()
+		end
+	end)
+	
+	return function(forceState)
+		active = forceState
+		callback(active)
+		if active then
+			ObjectsToTheme[ToggleBtn] = "BackgroundColor3"
+			ToggleBtn.BackgroundColor3 = ThemeColor
+			StateCircle.Position = UDim2.new(1, -20, 0, 3)
+		else
+			ObjectsToTheme[ToggleBtn] = nil
+			ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+			StateCircle.Position = UDim2.new(0, 4, 0, 3)
+		end
+	end
+end
+
+local function CreateInputRow(page, featureText, defaultText, callback)
+	local Row = Instance.new("Frame")
+	Row.Size = UDim2.new(1, -10, 0, 40)
+	Row.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+	Row.BackgroundTransparency = 0.3
+	Row.BorderSizePixel = 0
+	Row.Parent = page
+	Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 6)
+
+	local Label = Instance.new("TextLabel")
+	Label.Size = UDim2.new(0.5, 0, 1, 0)
+	Label.Position = UDim2.new(0, 12, 0, 0)
+	Label.BackgroundTransparency = 1
+	Label.Text = featureText
+	Label.TextColor3 = Color3.fromRGB(210, 210, 215)
+	Label.Font = Enum.Font.SourceSans
+	Label.TextSize = 14
+	Label.TextXAlignment = Enum.TextXAlignment.Left
+	Label.Parent = Row
+
+	local BoxInput = Instance.new("TextBox")
+	BoxInput.Size = UDim2.new(0, 100, 0, 26)
+	BoxInput.Position = UDim2.new(1, -112, 0, 7)
+	BoxInput.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+	BoxInput.BorderSizePixel = 0
+	BoxInput.TextColor3 = Color3.fromRGB(0, 255, 200)
+	BoxInput.Text = defaultText
+	BoxInput.Font = Enum.Font.SourceSansBold
+	BoxInput.TextSize = 14
+	BoxInput.ClearTextOnFocus = true
+	BoxInput.Parent = Row
+	Instance.new("UICorner", BoxInput).CornerRadius = UDim.new(0, 4)
+
+	BoxInput.FocusLost:Connect(function(enter)
+		callback(BoxInput.Text, enter)
+	end)
+end
+
+local function CreateButtonRow(page, btnText, callback)
+	local Row = Instance.new("Frame")
+	Row.Size = UDim2.new(1, -10, 0, 45)
+	Row.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+	Row.BackgroundTransparency = 0.3
+	Row.BorderSizePixel = 0
+	Row.Parent = page
+	Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 6)
+
+	local Btn = Instance.new("TextButton")
+	Btn.Size = UDim2.new(1, -20, 0, 33)
+	Btn.Position = UDim2.new(0, 10, 0, 6)
+	Btn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+	Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Btn.Text = btnText
+	Btn.Font = Enum.Font.SourceSansBold
+	Btn.TextSize = 14
+	Btn.Parent = Row
+	Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
+
+	Btn.MouseButton1Click:Connect(callback)
+end
+
+-- ==================== KHỞI TẠO CÁC TAB CHỨC NĂNG ====================
+local MainTab = CreateTab("Main Hacks")
+local StatusTab = CreateTab("Status/Configs")
+local UtilityTab = CreateTab("Utility")
+local InfoTab = CreateTab("Thông tin")
+
+Tabs["Main Hacks"].Visible = true
+TabButtons["Main Hacks"].BackgroundTransparency = 0.4
+TabButtons["Main Hacks"].TextColor3 = Color3.fromRGB(255, 255, 255)
+
+-- ==================== TAB 1: MAIN HACKS ====================
+CreateSectionTitle(MainTab, "Hệ thống Di chuyển & ESP")
+
+local ToggleNoclipFunc = CreateToggleRow(MainTab, "Xuyên tường (Noclip)", false, function(state)
+	noclip = state
+end)
+
+local ToggleFlyFunc = CreateToggleRow(MainTab, "Bay tự do (WASD)", false, function(state)
+	if not char or not humanoid then return end
+	flying = state
+	if flying then
+		humanoid.PlatformStand = true
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			if not flyAttachment then flyAttachment = Instance.new("Attachment", hrp) end
+			if not flyVelocity then 
+				flyVelocity = Instance.new("LinearVelocity", hrp)
+				flyVelocity.Attachment0 = flyAttachment
+				flyVelocity.MaxForce = math.huge
+			end
+			flyVelocity.VectorVelocity = Vector3.new(0, 0, 0)
+		end
+	else
+		humanoid.PlatformStand = false
+		if flyVelocity then flyVelocity:Destroy() flyVelocity = nil end
+		if flyAttachment then flyAttachment:Destroy() flyAttachment = nil end
+	end
+end)
+
+CreateToggleRow(MainTab, "Nhảy vô hạn (Infinite Jump)", false, function(state)
+	infJump = state
+end)
+
+-- Hệ thống ESP Nhìn xuyên tường (Người chơi + NPC/Quái)
+local espHighlights = {}
+local function updateESP()
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= player and p.Character then
+			if espEnabled then
+				if not espHighlights[p] then
+					local hi = Instance.new("Highlight")
+					hi.Name = "PlayerESP_NguyenDz"
+					hi.FillColor = Color3.fromRGB(255, 50, 50)
+					hi.FillTransparency = 0.5
+					hi.OutlineColor = Color3.fromRGB(255, 255, 255)
+					hi.Parent = ScreenGui
+					hi.Adornee = p.Character
+					espHighlights[p] = hi
+				end
+			else
+				if espHighlights[p] then espHighlights[p]:Destroy() espHighlights[p] = nil end
+			end
+		end
+	end
+	
+	-- ESP NPC/Quái vật
+	for _, v in ipairs(workspace:GetDescendants()) do
+		if v:IsA("Model") and v:FindFirstChildOfClass("Humanoid") and not Players:GetPlayerFromCharacter(v) then
+			if npcEspEnabled then
+				if not espHighlights[v] then
+					local hi = Instance.new("Highlight")
+					hi.Name = "NpcESP_NguyenDz"
+					hi.FillColor = Color3.fromRGB(0, 255, 100) -- Màu xanh lá cho NPC/Quái
+					hi.FillTransparency = 0.6
+					hi.OutlineColor = Color3.fromRGB(255, 255, 0)
+					hi.Parent = ScreenGui
+					hi.Adornee = v
+					espHighlights[v] = hi
+				end
+			else
+				if espHighlights[v] then espHighlights[v]:Destroy() espHighlights[v] = nil end
+			end
+		end
+	end
+end
+
+CreateToggleRow(MainTab, "Xuyên tường Người (Player ESP)", false, function(state)
+	espEnabled = state
+	updateESP()
+end)
+
+CreateToggleRow(MainTab, "Xuyên tường Quái/NPC (NPC ESP)", false, function(state)
+	npcEspEnabled = state
+	updateESP()
+end)
+
+-- Camera Tự Do (Free Cam)
+CreateToggleRow(MainTab, "Camera Tự Do (Free Cam)", false, function(state)
+	freeCamEnabled = state
+	local camera = workspace.CurrentCamera
+	if freeCamEnabled then
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			camera.CameraType = Enum.CameraType.Scriptable
+			freeCamPart = Instance.new("Part")
+			freeCamPart.Size = Vector3.new(1,1,1)
+			freeCamPart.Transparency = 1
+			freeCamPart.CanCollide = false
+			freeCamPart.Anchored = true
+			freeCamPart.CFrame = camera.CFrame
+			freeCamPart.Parent = workspace
+		end
+	else
+		camera.CameraType = Enum.CameraType.Custom
+		if freeCamPart then freeCamPart:Destroy() freeCamPart = nil end
+	end
+end)
+
+-- ==================== TAB 2: STATUS/CONFIGS ====================
+CreateSectionTitle(StatusTab, "Cấu hình Hack & Đổi màu UI")
+
+-- [TÍNH NĂNG ĐỔI MÀU GIAO DIỆN CHỦ ĐẠO]
+local ThemeRow = Instance.new("Frame")
+ThemeRow.Size = UDim2.new(1, -10, 0, 45)
+ThemeRow.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+ThemeRow.BackgroundTransparency = 0.3
+ThemeRow.Parent = StatusTab
+Instance.new("UICorner", ThemeRow).CornerRadius = UDim.new(0, 6)
+
+local ThemeLabel = Instance.new("TextLabel")
+ThemeLabel.Size = UDim2.new(0.4, 0, 1, 0)
+ThemeLabel.Position = UDim2.new(0, 12, 0, 0)
+ThemeLabel.BackgroundTransparency = 1
+ThemeLabel.Text = "Chọn màu sắc UI:"
+ThemeLabel.TextColor3 = Color3.fromRGB(210, 210, 215)
+ThemeLabel.Font = Enum.Font.SourceSans
+ThemeLabel.TextSize = 14
+ThemeLabel.TextXAlignment = Enum.TextXAlignment.Left
+ThemeLabel.Parent = ThemeRow
+
+local colors = {Color3.fromRGB(255, 50, 50), Color3.fromRGB(50, 120, 255), Color3.fromRGB(150, 50, 255), Color3.fromRGB(0, 255, 150), Color3.fromRGB(255, 200, 0)}
+for i, col in ipairs(colors) do
+	local colBtn = Instance.new("TextButton")
+	colBtn.Size = UDim2.new(0, 24, 0, 24)
+	colBtn.Position = UDim2.new(1, -150 + (i * 28), 0, 10)
+	colBtn.BackgroundColor3 = col
+	colBtn.Text = ""
+	colBtn.Parent = ThemeRow
+	Instance.new("UICorner", colBtn).CornerRadius = UDim.new(0, 12)
+	colBtn.MouseButton1Click:Connect(function()
+		UpdateTheme(col)
+	end)
+end
+
+CreateInputRow(StatusTab, "Tốc độ Bay:", tostring(FlySpeed), function(text)
+	local num = tonumber(text)
+	if num then FlySpeed = math.clamp(num, 10, 500) end
+end)
+
+CreateInputRow(StatusTab, "Tốc độ Chạy bộ:", tostring(CustomSpeed), function(text)
+	local num = tonumber(text)
+	if num then 
+		CustomSpeed = math.clamp(num, 16, 500) 
+		if humanoid then humanoid.WalkSpeed = CustomSpeed end
+	end
+end)
+
+CreateInputRow(StatusTab, "Độ Cao Lực Nhảy:", tostring(CustomJump), function(text)
+	local num = tonumber(text)
+	if num then 
+		CustomJump = math.clamp(num, 50, 500) 
+		if humanoid then
+			if humanoid.UseJumpPower then humanoid.JumpPower = CustomJump else humanoid.JumpHeight = CustomJump / 7.2 end
+		end
+	end
+end)
+
+CreateToggleRow(StatusTab, "Tăng độ sáng (Fullbright)", false, function(state)
+	fullbright = state
+	if fullbright then
+		Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+		Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+	else
+		Lighting.Ambient = Color3.fromRGB(128, 128, 128)
+		Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+	end
+end)
+
+CreateToggleRow(StatusTab, "Chống choáng VIP (Anti Stun)", false, function(state)
+	antiStun = state
+end)
+
+CreateToggleRow(StatusTab, "Chống mất máu (Anti Damage)", false, function(state)
+	antiDamage = state
+end)
+
+-- ==================== TAB 3: UTILITY ====================
+CreateSectionTitle(UtilityTab, "Hệ thống Tiện ích server")
+
+CreateButtonRow(UtilityTab, "Vào lại game phòng cũ (Rejoin)", function()
+	TeleportService:Teleport(game.PlaceId, player)
+end)
+
+CreateButtonRow(UtilityTab, "Đổi sang Server khác (Server Hop)", function()
+	local success, result = pcall(function()
+		return game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100")
+	end)
+	if success then
+		for _, s in ipairs(game:GetService("HttpService"):JSONDecode(result).data) do
+			if s.playing < s.maxPlayers and s.id ~= game.JobId then
+				TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, player)
+				break
+			end
+		end
+	end
+end)
+
+-- ==================== TAB 4: THÔNG TIN ====================
+local InfoLabel = Instance.new("TextLabel")
+InfoLabel.Size = UDim2.new(1, -20, 0, 60)
+InfoLabel.Position = UDim2.new(0, 10, 0, 20)
+InfoLabel.BackgroundTransparency = 1
+InfoLabel.Text = "The upgrade is coming soon."
+InfoLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+InfoLabel.Font = Enum.Font.SourceSansItalic
+InfoLabel.TextSize = 18
+InfoLabel.TextXAlignment = Enum.TextXAlignment.Center

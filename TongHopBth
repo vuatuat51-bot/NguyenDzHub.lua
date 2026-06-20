@@ -54,7 +54,7 @@ end)
 
 -- ==================== HỆ THỐNG GIAO DIỆN (GUI) ====================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NguyenDzHub_Menu_v3"
+ScreenGui.Name = "NguyenDzHub_Menu_v3_Fixed"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
@@ -239,11 +239,14 @@ local function CreateSectionTitle(page, titleText)
 	Label.Parent = page
 end
 
+-- Định nghĩa trước hàm cập nhật để tránh lỗi đồng bộ
+local SyncUINoclip, SyncUIFly
+
 local function CreateToggleRow(page, featureText, defaultState, callback)
 	local Row = Instance.new("Frame")
 	Row.Size = UDim2.new(1, -10, 0, 40)
 	Row.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-	Row.BackgroundTransparency = 0.3 -- Hiệu ứng hàng mờ nhẹ
+	Row.BackgroundTransparency = 0.3
 	Row.BorderSizePixel = 0
 	Row.Parent = page
 	Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 6)
@@ -276,32 +279,29 @@ local function CreateToggleRow(page, featureText, defaultState, callback)
 	Instance.new("UICorner", StateCircle).CornerRadius = UDim.new(0, 8)
 
 	local active = defaultState
+	
+	local function updateVisuals()
+		if active then
+			ObjectsToTheme[ToggleBtn] = "BackgroundColor3"
+			TweenService:Create(ToggleBtn, TweenInfo.new(0.15), {BackgroundColor3 = ThemeColor}):Play()
+			TweenService:Create(StateCircle, TweenInfo.new(0.15), {Position = UDim2.new(1, -20, 0, 3)}):Play()
+		else
+			ObjectsToTheme[ToggleBtn] = nil
+			TweenService:Create(ToggleBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
+			TweenService:Create(StateCircle, TweenInfo.new(0.15), {Position = UDim2.new(0, 4, 0, 3)}):Play()
+		end
+	end
+
 	ToggleBtn.MouseButton1Click:Connect(function()
 		active = not active
 		callback(active)
-		if active then
-			ObjectsToTheme[ToggleBtn] = "BackgroundColor3"
-			TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = ThemeColor}):Play()
-			TweenService:Create(StateCircle, TweenInfo.new(0.2), {Position = UDim2.new(1, -20, 0, 3)}):Play()
-		else
-			ObjectsToTheme[ToggleBtn] = nil
-			TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
-			TweenService:Create(StateCircle, TweenInfo.new(0.2), {Position = UDim2.new(0, 4, 0, 3)}):Play()
-		end
+		updateVisuals()
 	end)
 	
 	return function(forceState)
 		active = forceState
 		callback(active)
-		if active then
-			ObjectsToTheme[ToggleBtn] = "BackgroundColor3"
-			ToggleBtn.BackgroundColor3 = ThemeColor
-			StateCircle.Position = UDim2.new(1, -20, 0, 3)
-		else
-			ObjectsToTheme[ToggleBtn] = nil
-			ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
-			StateCircle.Position = UDim2.new(0, 4, 0, 3)
-		end
+		updateVisuals()
 	end
 end
 
@@ -379,11 +379,11 @@ TabButtons["Main Hacks"].TextColor3 = Color3.fromRGB(255, 255, 255)
 -- ==================== TAB 1: MAIN HACKS ====================
 CreateSectionTitle(MainTab, "Hệ thống Di chuyển & ESP")
 
-local ToggleNoclipFunc = CreateToggleRow(MainTab, "Xuyên tường (Noclip)", false, function(state)
+SyncUINoclip = CreateToggleRow(MainTab, "Xuyên tường (Noclip)", false, function(state)
 	noclip = state
 end)
 
-local ToggleFlyFunc = CreateToggleRow(MainTab, "Bay tự do (WASD)", false, function(state)
+SyncUIFly = CreateToggleRow(MainTab, "Bay tự do (WASD)", false, function(state)
 	if not char or not humanoid then return end
 	flying = state
 	if flying then
@@ -409,7 +409,7 @@ CreateToggleRow(MainTab, "Nhảy vô hạn (Infinite Jump)", false, function(sta
 	infJump = state
 end)
 
--- Hệ thống ESP Nhìn xuyên tường (Người chơi + NPC/Quái)
+-- Hệ thống ESP Nhìn xuyên tường
 local espHighlights = {}
 local function updateESP()
 	for _, p in ipairs(Players:GetPlayers()) do
@@ -431,14 +431,13 @@ local function updateESP()
 		end
 	end
 	
-	-- ESP NPC/Quái vật
 	for _, v in ipairs(workspace:GetDescendants()) do
 		if v:IsA("Model") and v:FindFirstChildOfClass("Humanoid") and not Players:GetPlayerFromCharacter(v) then
 			if npcEspEnabled then
 				if not espHighlights[v] then
 					local hi = Instance.new("Highlight")
 					hi.Name = "NpcESP_NguyenDz"
-					hi.FillColor = Color3.fromRGB(0, 255, 100) -- Màu xanh lá cho NPC/Quái
+					hi.FillColor = Color3.fromRGB(0, 255, 100)
 					hi.FillTransparency = 0.6
 					hi.OutlineColor = Color3.fromRGB(255, 255, 0)
 					hi.Parent = ScreenGui
@@ -462,7 +461,6 @@ CreateToggleRow(MainTab, "Xuyên tường Quái/NPC (NPC ESP)", false, function(
 	updateESP()
 end)
 
--- Camera Tự Do (Free Cam)
 CreateToggleRow(MainTab, "Camera Tự Do (Free Cam)", false, function(state)
 	freeCamEnabled = state
 	local camera = workspace.CurrentCamera
@@ -486,7 +484,6 @@ end)
 -- ==================== TAB 2: STATUS/CONFIGS ====================
 CreateSectionTitle(StatusTab, "Cấu hình Hack & Đổi màu UI")
 
--- [TÍNH NĂNG ĐỔI MÀU GIAO DIỆN CHỦ ĐẠO]
 local ThemeRow = Instance.new("Frame")
 ThemeRow.Size = UDim2.new(1, -10, 0, 45)
 ThemeRow.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
@@ -592,3 +589,11 @@ InfoLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
 InfoLabel.Font = Enum.Font.SourceSansItalic
 InfoLabel.TextSize = 18
 InfoLabel.TextXAlignment = Enum.TextXAlignment.Center
+InfoLabel.Parent = InfoTab
+
+----------------------------------------------------------------
+-- [3] NÚT ICON CHỮ "N" TRÒN VÀ CÁC NÚT PHỤ BẬT TẮT NHANH (MINI BUTTONS)
+----------------------------------------------------------------
+local OpenMenuBtn = Instance.new("TextButton")
+OpenMenuBtn.Parent = ScreenGui
+OpenMenuBtn.Size = U

@@ -19,6 +19,7 @@ local fullbright = false
 local antiStun = false
 local antiDamage = false
 local freeCamEnabled = false
+local fixLagEnabled = false -- Biến quản lý trạng thái Fix Lag
 
 local FlySpeed = 50
 local CustomSpeed = 16
@@ -28,8 +29,15 @@ local flyAttachment = nil
 local flyVelocity = nil
 local freeCamPart = nil
 
+-- Lưu lại cấu hình gốc để khôi phục khi tắt Fix Lag
+local originalMaterials = {}
+local originalLighting = {
+	GlobalShadows = Lighting.GlobalShadows,
+	Technology = Lighting.Technology
+}
+
 -- Quản lý màu sắc chủ đạo (Theme Color)
-local ThemeColor = Color3.fromRGB(255, 50, 50) -- Mặc định là đỏ đỏ Sigma
+local ThemeColor = Color3.fromRGB(255, 50, 50) 
 local ObjectsToTheme = {}
 
 local function UpdateTheme(newColor)
@@ -54,19 +62,19 @@ end)
 
 -- ==================== HỆ THỐNG GIAO DIỆN (GUI) ====================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NguyenDzHub_Menu_v3_Fixed"
+ScreenGui.Name = "NguyenDzHub_Menu_v3_1"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
 ----------------------------------------------------------------
--- [1] CỬA SỔ CÂU HỎI BẤT BUỘC (Mờ mờ ảo ảo)
+-- [1] CỬA SỔ CÂU HỎI BẮT BUỘC
 ----------------------------------------------------------------
 local QuestionFrame = Instance.new("Frame")
 QuestionFrame.Parent = ScreenGui
 QuestionFrame.Size = UDim2.new(0, 320, 0, 160)
 QuestionFrame.Position = UDim2.new(0.5, -160, 0.5, -80)
 QuestionFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-QuestionFrame.BackgroundTransparency = 0.15 -- Tạo độ mờ
+QuestionFrame.BackgroundTransparency = 0.15 
 Instance.new("UICorner", QuestionFrame).CornerRadius = UDim.new(0, 10)
 
 local Question = Instance.new("TextLabel")
@@ -101,20 +109,19 @@ Btn2.Text = "Có"
 Instance.new("UICorner", Btn2).CornerRadius = UDim.new(0, 6)
 
 ----------------------------------------------------------------
--- [2] MENU CHÍNH (GIAO DIỆN MỜ ACRYLIC & PHẦN ĐỔI MÀU)
+-- [2] MENU CHÍNH
 ----------------------------------------------------------------
 local MainMenu = Instance.new("Frame")
 MainMenu.Parent = ScreenGui
 MainMenu.Size = UDim2.new(0, 560, 0, 360)
 MainMenu.Position = UDim2.new(0.5, -280, 0.5, -180)
 MainMenu.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
-MainMenu.BackgroundTransparency = 0.15 -- Nền kính mờ Acrylic ảo diệu
+MainMenu.BackgroundTransparency = 0.15 
 MainMenu.Active = true
 MainMenu.Draggable = true 
 MainMenu.Visible = false
 Instance.new("UICorner", MainMenu).CornerRadius = UDim.new(0, 12)
 
--- Thanh tiêu đề
 local TopBar = Instance.new("Frame")
 TopBar.Parent = MainMenu
 TopBar.Size = UDim2.new(1, 0, 0, 40)
@@ -125,13 +132,12 @@ TitleText.Parent = TopBar
 TitleText.Size = UDim2.new(1, -90, 1, 0)
 TitleText.Position = UDim2.new(0, 15, 0, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "NguyenDzHub : Nguyên Sigma Edition v3.0" 
+TitleText.Text = "NguyenDzHub : Nguyên Sigma Edition v3.1" 
 TitleText.TextColor3 = Color3.fromRGB(240, 240, 245)
 TitleText.Font = Enum.Font.SourceSansBold
 TitleText.TextSize = 15
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 
--- Nút ẩn menu
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Parent = TopBar
 MinimizeBtn.Size = UDim2.new(0, 30, 0, 30)
@@ -142,7 +148,6 @@ MinimizeBtn.Text = "—"
 MinimizeBtn.Font = Enum.Font.SourceSansBold
 MinimizeBtn.TextSize = 16
 
--- Nút xóa menu hoàn toàn
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Parent = TopBar
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
@@ -153,7 +158,6 @@ CloseBtn.Text = "X"
 CloseBtn.Font = Enum.Font.SourceSansBold
 CloseBtn.TextSize = 16
 
--- Sidebar bên trái
 local Sidebar = Instance.new("ScrollingFrame")
 Sidebar.Parent = MainMenu
 Sidebar.Size = UDim2.new(0, 160, 1, -50)
@@ -166,7 +170,6 @@ local SidebarLayout = Instance.new("UIListLayout")
 SidebarLayout.Parent = Sidebar
 SidebarLayout.Padding = UDim.new(0, 5)
 
--- Vạch kẻ ngăn cách dọc
 local Divider = Instance.new("Frame")
 Divider.Parent = MainMenu
 Divider.Size = UDim2.new(0, 1, 1, -60)
@@ -174,7 +177,6 @@ Divider.Position = UDim2.new(0, 175, 0, 50)
 Divider.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
 Divider.BorderSizePixel = 0
 
--- Khung chứa nội dung các Tab bên phải
 local ContentContainer = Instance.new("Frame")
 ContentContainer.Parent = MainMenu
 ContentContainer.Size = UDim2.new(1, -190, 1, -55)
@@ -239,7 +241,6 @@ local function CreateSectionTitle(page, titleText)
 	Label.Parent = page
 end
 
--- Định nghĩa trước hàm cập nhật để tránh lỗi đồng bộ
 local SyncUINoclip, SyncUIFly
 
 local function CreateToggleRow(page, featureText, defaultState, callback)
@@ -409,7 +410,6 @@ CreateToggleRow(MainTab, "Nhảy vô hạn (Infinite Jump)", false, function(sta
 	infJump = state
 end)
 
--- Hệ thống ESP Nhìn xuyên tường
 local espHighlights = {}
 local function updateESP()
 	for _, p in ipairs(Players:GetPlayers()) do
@@ -482,7 +482,7 @@ CreateToggleRow(MainTab, "Camera Tự Do (Free Cam)", false, function(state)
 end)
 
 -- ==================== TAB 2: STATUS/CONFIGS ====================
-CreateSectionTitle(StatusTab, "Cấu hình Hack & Đổi màu UI")
+CreateSectionTitle(StatusTab, "Cấu hình Hack & Đổi màu UI & Fix Lag")
 
 local ThemeRow = Instance.new("Frame")
 ThemeRow.Size = UDim2.new(1, -10, 0, 45)
@@ -515,6 +515,42 @@ for i, col in ipairs(colors) do
 		UpdateTheme(col)
 	end)
 end
+
+-- TÍNH NĂNG TỐI ƯU GIẢM LAG (FPS BOOSTER) CHUYÊN DỤNG
+CreateToggleRow(StatusTab, "Chế độ Giảm Đồ Họa / Fix Lag", false, function(state)
+	fixLagEnabled = state
+	if fixLagEnabled then
+		-- Tắt đổ bóng toàn cục để giải phóng CPU/GPU
+		Lighting.GlobalShadows = false
+		
+		-- Quét tất cả vật thể hiện có để tối giản vật liệu và hiệu ứng
+		for _, v in ipairs(workspace:GetDescendants()) do
+			if v:IsA("BasePart") and not v:IsA("MeshPart") then
+				if not originalMaterials[v] then originalMaterials[v] = v.Material end
+				v.Material = Enum.Material.SmoothPlastic
+			elseif v:IsA("Decal") or v:IsA("Texture") then
+				v.Transparency = 1 -- Ẩn decan dán tường giảm tải bộ nhớ nạp ảnh
+			elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Sparkles") then
+				v.Enabled = false -- Đóng tất cả hiệu ứng chiêu thức, khói bụi gây tụt FPS
+			end
+		end
+	else
+		-- Trả đồ họa về lại nguyên bản khi tắt tính năng
+		Lighting.GlobalShadows = originalLighting.GlobalShadows
+		for part, mat in pairs(originalMaterials) do
+			if part and part.Parent then part.Material = mat end
+		end
+		table.clear(originalMaterials)
+		
+		for _, v in ipairs(workspace:GetDescendants()) do
+			if v:IsA("Decal") or v:IsA("Texture") then
+				v.Transparency = 0
+			elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Sparkles") then
+				v.Enabled = true
+			end
+		end
+	end
+end)
 
 CreateInputRow(StatusTab, "Tốc độ Bay:", tostring(FlySpeed), function(text)
 	local num = tonumber(text)
@@ -592,7 +628,7 @@ InfoLabel.TextXAlignment = Enum.TextXAlignment.Center
 InfoLabel.Parent = InfoTab
 
 ----------------------------------------------------------------
--- [3] NÚT ICON CHỮ "N" TRÒN VÀ CÁC NÚT PHỤ BẬT TẮT NHANH (MINI BUTTONS)
+-- [3] NÚT ICON CHỮ "N" TRÒN VÀ CÁC NÚT PHỤ BẬT TẮT NHANH
 ----------------------------------------------------------------
 local OpenMenuBtn = Instance.new("TextButton")
 OpenMenuBtn.Parent = ScreenGui
@@ -603,7 +639,7 @@ OpenMenuBtn.Text = "N"
 OpenMenuBtn.TextColor3 = ThemeColor
 OpenMenuBtn.Font = Enum.Font.SourceSansBold
 OpenMenuBtn.TextSize = 22
-OpenMenuBtn.Visible = false -- Ẩn đi lúc đầu, hiện sau khi qua câu hỏi
+OpenMenuBtn.Visible = false 
 Instance.new("UICorner", OpenMenuBtn).CornerRadius = UDim.new(0, 23)
 ObjectsToTheme[OpenMenuBtn] = "TextColor3"
 
@@ -633,7 +669,6 @@ MiniClipBtn.TextSize = 12
 MiniClipBtn.Visible = false
 Instance.new("UICorner", MiniClipBtn).CornerRadius = UDim.new(0, 4)
 
--- Hệ thống kéo rê nút Icon
 local dragging, dragInput, dragStart, startPos
 OpenMenuBtn.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -655,13 +690,12 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 -- ==================== HỆ THỐNG LOGIC ĐÓNG / MỞ / ĐIỀU KHIỂN ====================
--- FIX: Mở khóa UI toàn diện và kích hoạt hệ thống nút ẩn/hiện chuẩn xác
 local function UnlockHackMenu()
 	QuestionFrame:Destroy()
-	MainMenu.Visible = true      -- Hiện menu chính ngay lập tức
-	OpenMenuBtn.Visible = false  -- Nút mở tạm ẩn vì bảng đang mở
-	MiniFlyBtn.Visible = false   -- Nút bay tạm ẩn vì bảng đang mở
-	MiniClipBtn.Visible = false  -- Nút clip tạm ẩn vì bảng đang mở
+	MainMenu.Visible = true      
+	OpenMenuBtn.Visible = false  
+	MiniFlyBtn.Visible = false   
+	MiniClipBtn.Visible = false  
 end
 Btn1.MouseButton1Click:Connect(UnlockHackMenu)
 Btn2.MouseButton1Click:Connect(UnlockHackMenu)
@@ -680,7 +714,6 @@ OpenMenuBtn.MouseButton1Click:Connect(function()
 	MiniClipBtn.Visible = false
 end)
 
--- Logic nút phụ kích hoạt nhanh
 MiniFlyBtn.MouseButton1Click:Connect(function()
 	SyncUIFly(not flying)
 	MiniFlyBtn.TextColor3 = flying and ThemeColor or Color3.fromRGB(200, 200, 200)
@@ -691,9 +724,12 @@ MiniClipBtn.MouseButton1Click:Connect(function()
 	MiniClipBtn.TextColor3 = noclip and ThemeColor or Color3.fromRGB(200, 200, 200)
 end)
 
--- NÚT XÓA MENU HOÀN TOÀN
 CloseBtn.MouseButton1Click:Connect(function()
 	noclip = false flying = false infJump = false espEnabled = false npcEspEnabled = false fullbright = false antiStun = false antiDamage = false freeCamEnabled = false
+	if fixLagEnabled then
+		Lighting.GlobalShadows = originalLighting.GlobalShadows
+		for part, mat in pairs(originalMaterials) do if part and part.Parent then part.Material = mat end end
+	end
 	if flyVelocity then flyVelocity:Destroy() end
 	if flyAttachment then flyAttachment:Destroy() end
 	if freeCamPart then freeCamPart:Destroy() end
@@ -731,6 +767,21 @@ end)
 RunService.Heartbeat:Connect(function()
 	if humanoid and char and not flying then
 		if humanoid.WalkSpeed ~= CustomSpeed then humanoid.WalkSpeed = CustomSpeed end
+	end
+end)
+
+-- LẮP ĐẶT CAMERA-QUÉT: Tự động tối ưu giảm lag ngay lập tức cho quái/vật phẩm mới xuất hiện liên tục
+workspace.DescendantAdded:Connect(function(v)
+	if fixLagEnabled then
+		task.wait()
+		if v:IsA("BasePart") and not v:IsA("MeshPart") then
+			if not originalMaterials[v] then originalMaterials[v] = v.Material end
+			v.Material = Enum.Material.SmoothPlastic
+		elseif v:IsA("Decal") or v:IsA("Texture") then
+			v.Transparency = 1
+		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Sparkles") then
+			v.Enabled = false
+		end
 	end
 end)
 

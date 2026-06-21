@@ -596,4 +596,174 @@ InfoLabel.Parent = InfoTab
 ----------------------------------------------------------------
 local OpenMenuBtn = Instance.new("TextButton")
 OpenMenuBtn.Parent = ScreenGui
-OpenMenuBtn.Size = U
+OpenMenuBtn.Size = UDim2.new(0, 46, 0, 46)
+OpenMenuBtn.Position = UDim2.new(0, 15, 0.4, 0)
+OpenMenuBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+OpenMenuBtn.Text = "N" 
+OpenMenuBtn.TextColor3 = ThemeColor
+OpenMenuBtn.Font = Enum.Font.SourceSansBold
+OpenMenuBtn.TextSize = 22
+OpenMenuBtn.Visible = false -- Ẩn đi lúc đầu, hiện sau khi qua câu hỏi
+Instance.new("UICorner", OpenMenuBtn).CornerRadius = UDim.new(0, 23)
+ObjectsToTheme[OpenMenuBtn] = "TextColor3"
+
+local MiniFlyBtn = Instance.new("TextButton")
+MiniFlyBtn.Parent = ScreenGui
+MiniFlyBtn.Size = UDim2.new(0, 40, 0, 25)
+MiniFlyBtn.Position = UDim2.new(0, 18, 0.4, 55)
+MiniFlyBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+MiniFlyBtn.BackgroundTransparency = 0.2
+MiniFlyBtn.Text = "FLY"
+MiniFlyBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+MiniFlyBtn.Font = Enum.Font.SourceSansBold
+MiniFlyBtn.TextSize = 12
+MiniFlyBtn.Visible = false
+Instance.new("UICorner", MiniFlyBtn).CornerRadius = UDim.new(0, 4)
+
+local MiniClipBtn = Instance.new("TextButton")
+MiniClipBtn.Parent = ScreenGui
+MiniClipBtn.Size = UDim2.new(0, 40, 0, 25)
+MiniClipBtn.Position = UDim2.new(0, 18, 0.4, 85)
+MiniClipBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+MiniClipBtn.BackgroundTransparency = 0.2
+MiniClipBtn.Text = "CLIP"
+MiniClipBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+MiniClipBtn.Font = Enum.Font.SourceSansBold
+MiniClipBtn.TextSize = 12
+MiniClipBtn.Visible = false
+Instance.new("UICorner", MiniClipBtn).CornerRadius = UDim.new(0, 4)
+
+-- Hệ thống kéo rê nút Icon
+local dragging, dragInput, dragStart, startPos
+OpenMenuBtn.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true dragStart = input.Position startPos = OpenMenuBtn.Position
+		input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+	end
+end)
+OpenMenuBtn.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+end)
+UIS.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		local newPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		OpenMenuBtn.Position = newPos
+		MiniFlyBtn.Position = newPos + UDim2.new(0, 3, 0, 55)
+		MiniClipBtn.Position = newPos + UDim2.new(0, 3, 0, 85)
+	end
+end)
+
+-- ==================== HỆ THỐNG LOGIC ĐÓNG / MỞ / ĐIỀU KHIỂN ====================
+-- FIX: Mở khóa UI toàn diện và kích hoạt hệ thống nút ẩn/hiện chuẩn xác
+local function UnlockHackMenu()
+	QuestionFrame:Destroy()
+	MainMenu.Visible = true      -- Hiện menu chính ngay lập tức
+	OpenMenuBtn.Visible = false  -- Nút mở tạm ẩn vì bảng đang mở
+	MiniFlyBtn.Visible = false   -- Nút bay tạm ẩn vì bảng đang mở
+	MiniClipBtn.Visible = false  -- Nút clip tạm ẩn vì bảng đang mở
+end
+Btn1.MouseButton1Click:Connect(UnlockHackMenu)
+Btn2.MouseButton1Click:Connect(UnlockHackMenu)
+
+MinimizeBtn.MouseButton1Click:Connect(function()
+	MainMenu.Visible = false
+	OpenMenuBtn.Visible = true
+	MiniFlyBtn.Visible = true
+	MiniClipBtn.Visible = true
+end)
+
+OpenMenuBtn.MouseButton1Click:Connect(function()
+	MainMenu.Visible = true
+	OpenMenuBtn.Visible = false
+	MiniFlyBtn.Visible = false
+	MiniClipBtn.Visible = false
+end)
+
+-- Logic nút phụ kích hoạt nhanh
+MiniFlyBtn.MouseButton1Click:Connect(function()
+	SyncUIFly(not flying)
+	MiniFlyBtn.TextColor3 = flying and ThemeColor or Color3.fromRGB(200, 200, 200)
+end)
+
+MiniClipBtn.MouseButton1Click:Connect(function()
+	SyncUINoclip(not noclip)
+	MiniClipBtn.TextColor3 = noclip and ThemeColor or Color3.fromRGB(200, 200, 200)
+end)
+
+-- NÚT XÓA MENU HOÀN TOÀN
+CloseBtn.MouseButton1Click:Connect(function()
+	noclip = false flying = false infJump = false espEnabled = false npcEspEnabled = false fullbright = false antiStun = false antiDamage = false freeCamEnabled = false
+	if flyVelocity then flyVelocity:Destroy() end
+	if flyAttachment then flyAttachment:Destroy() end
+	if freeCamPart then freeCamPart:Destroy() end
+	for _, hi in pairs(espHighlights) do if hi then hi:Destroy() end end
+	if humanoid then humanoid.PlatformStand = false humanoid.WalkSpeed = 16 end
+	workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+	Lighting.Ambient = Color3.fromRGB(128, 128, 128)
+	Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+	ScreenGui:Destroy()
+end)
+
+-- ==================== VÒNG LẶP LIÊN TỤC (VẬT LÝ & GIAN LẬN) ====================
+UIS.JumpRequest:Connect(function()
+	if infJump and humanoid then humanoid:ChangeState("Jumping") end
+end)
+
+RunService.Stepped:Connect(function()
+	if noclip and char then
+		for _, part in ipairs(char:GetDescendants()) do
+			if part:IsA("BasePart") then part.CanCollide = false end
+		end
+	end
+	
+	if humanoid then
+		if antiStun then 
+			if humanoid.PlatformStand then humanoid.PlatformStand = false end
+			if humanoid:GetState() == Enum.HumanoidStateType.Ragdoll or humanoid:GetState() == Enum.HumanoidStateType.FallingDown then
+				humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+			end
+		end
+		if antiDamage and humanoid.Health < humanoid.MaxHealth then humanoid.Health = humanoid.MaxHealth end
+	end
+end)
+
+RunService.Heartbeat:Connect(function()
+	if humanoid and char and not flying then
+		if humanoid.WalkSpeed ~= CustomSpeed then humanoid.WalkSpeed = CustomSpeed end
+	end
+end)
+
+RunService.RenderStepped:Connect(function()
+	local cam = workspace.CurrentCamera
+	
+	if freeCamEnabled and freeCamPart then
+		local moveDir = Vector3.new(0, 0, 0)
+		if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
+		if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
+		if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir + cam.CFrame.RightVector * -1 end
+		if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
+		
+		freeCamPart.CFrame = freeCamPart.CFrame * CFrame.new(moveDir * 2)
+		cam.CFrame = freeCamPart.CFrame
+	end
+	
+	if flying and flyVelocity and char then
+		local moveDir = Vector3.new(0, 0, 0)
+		if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
+		if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
+		if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir + cam.CFrame.RightVector * -1 end
+		if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
+		if moveDir.Magnitude > 0 then
+			flyVelocity.VectorVelocity = moveDir.Unit * FlySpeed
+		else
+			flyVelocity.VectorVelocity = Vector3.new(0, 0, 0)
+		end
+	end
+end)
+
+task.spawn(function()
+	while task.wait(3) do
+		if espEnabled or npcEspEnabled then updateESP() end
+	end
+end)

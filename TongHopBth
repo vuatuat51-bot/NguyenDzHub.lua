@@ -6,9 +6,9 @@ local Lighting = game:GetService("Lighting")
 local TeleportService = game:GetService("TeleportService")
 
 local player = Players.LocalPlayer
--- Tối ưu tốc độ lấy Character để script load ngay lập tức không bị delay
-local char = player.Character or player.CharacterInstance or nil
-local humanoid = char and char:FindFirstChildOfClass("Humanoid") or nil
+-- Sửa lỗi lấy Character thông minh: Không bị kẹt delay nhưng không bị nil
+local char = player.Character or player.CharacterAdded:Wait()
+local humanoid = char:WaitForChild("Humanoid", 5) or char:FindFirstChildOfClass("Humanoid")
 
 -- ==================== HỆ THỐNG BIẾN QUẢN LÝ TÍNH NĂNG ====================
 local noclip = false
@@ -88,95 +88,90 @@ local function InitiateAntiBan()
 		setreadonly(gmt, true)
 	end
 end
-task.spawn(function() pcall(InitiateAntiBan) end) -- Chạy ngầm để không cản trở UI load
+task.spawn(function() pcall(InitiateAntiBan) end)
 
 -- ==================== HỆ THỐNG GIAO DIỆN (GUI) ====================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NguyenDzHub_Menu_v4_0"
+ScreenGui.Name = "NguyenDzHub_Menu_v4_1"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
 ----------------------------------------------------------------
--- [NEW] HỆ THỐNG THÔNG BÁO THÀNH TỰU (ACHIEVEMENT NOTIFICATION)
+-- HỆ THỐNG THÔNG BÁO THÀNH TỰU (ACHIEVEMENT NOTIFICATION)
 ----------------------------------------------------------------
 local function ShowAchievementNotify(title, desc)
-	local NotifyFrame = Instance.new("Frame")
-	NotifyFrame.Size = UDim2.new(0, 260, 0, 65)
-	-- Vị trí xuất phát ẩn ngoài rìa màn hình bên phải góc dưới
-	NotifyFrame.Position = UDim2.new(1, 30, 1, -85)
-	NotifyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-	NotifyFrame.BackgroundTransparency = 0.15
-	NotifyFrame.BorderSizePixel = 0
-	NotifyFrame.Parent = ScreenGui
-	Instance.new("UICorner", NotifyFrame).CornerRadius = UDim.new(0, 8)
+	pcall(function()
+		local NotifyFrame = Instance.new("Frame")
+		NotifyFrame.Size = UDim2.new(0, 260, 0, 65)
+		NotifyFrame.Position = UDim2.new(1, 30, 1, -85)
+		NotifyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+		NotifyFrame.BackgroundTransparency = 0.15
+		NotifyFrame.BorderSizePixel = 0
+		NotifyFrame.Parent = ScreenGui
+		Instance.new("UICorner", NotifyFrame).CornerRadius = UDim.new(0, 8)
 
-	-- Thanh màu trang trí cạnh trái thông báo
-	local SideLine = Instance.new("Frame")
-	SideLine.Size = UDim2.new(0, 4, 1, 0)
-	SideLine.BackgroundColor3 = ThemeColor
-	SideLine.BorderSizePixel = 0
-	SideLine.Parent = NotifyFrame
-	Instance.new("UICorner", SideLine).CornerRadius = UDim.new(0, 8)
-	ObjectsToTheme[SideLine] = "BackgroundColor3"
+		local SideLine = Instance.new("Frame")
+		SideLine.Size = UDim2.new(0, 4, 1, 0)
+		SideLine.BackgroundColor3 = ThemeColor
+		SideLine.BorderSizePixel = 0
+		SideLine.Parent = NotifyFrame
+		Instance.new("UICorner", SideLine).CornerRadius = UDim.new(0, 8)
+		ObjectsToTheme[SideLine] = "BackgroundColor3"
 
-	-- Icon giả lập thành tựu dạng tròn
-	local IconBox = Instance.new("Frame")
-	IconBox.Size = UDim2.new(0, 35, 0, 35)
-	IconBox.Position = UDim2.new(0, 15, 0.5, -17)
-	IconBox.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-	IconBox.BorderSizePixel = 0
-	IconBox.Parent = NotifyFrame
-	Instance.new("UICorner", IconBox).CornerRadius = UDim.new(0, 18)
+		local IconBox = Instance.new("Frame")
+		IconBox.Size = UDim2.new(0, 35, 0, 35)
+		IconBox.Position = UDim2.new(0, 15, 0.5, -17)
+		IconBox.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+		IconBox.BorderSizePixel = 0
+		IconBox.Parent = NotifyFrame
+		Instance.new("UICorner", IconBox).CornerRadius = UDim.new(0, 18)
 
-	local IconText = Instance.new("TextLabel")
-	IconText.Size = UDim2.new(1, 0, 1, 0)
-	IconText.BackgroundTransparency = 1
-	IconText.Text = "🏆"
-	IconText.TextSize = 18
-	IconText.Parent = IconBox
+		local IconText = Instance.new("TextLabel")
+		IconText.Size = UDim2.new(1, 0, 1, 0)
+		IconText.BackgroundTransparency = 1
+		IconText.Text = "🏆"
+		IconText.TextSize = 18
+		IconText.Parent = IconBox
 
-	-- Tiêu đề thông báo
-	local TitleLabel = Instance.new("TextLabel")
-	TitleLabel.Size = UDim2.new(1, -70, 0, 20)
-	TitleLabel.Position = UDim2.new(0, 60, 0, 12)
-	TitleLabel.BackgroundTransparency = 1
-	TitleLabel.Text = title
-	TitleLabel.TextColor3 = Color3.fromRGB(255, 215, 0) -- Màu vàng Gold quý phái
-	TitleLabel.Font = Enum.Font.SourceSansBold
-	TitleLabel.TextSize = 14
-	TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-	TitleLabel.Parent = NotifyFrame
+		local TitleLabel = Instance.new("TextLabel")
+		TitleLabel.Size = UDim2.new(1, -70, 0, 20)
+		TitleLabel.Position = UDim2.new(0, 60, 0, 12)
+		TitleLabel.BackgroundTransparency = 1
+		TitleLabel.Text = title
+		TitleLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+		TitleLabel.Font = Enum.Font.SourceSansBold
+		TitleLabel.TextSize = 14
+		TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+		TitleLabel.Parent = NotifyFrame
 
-	-- Nội dung mô tả chi tiết
-	local DescLabel = Instance.new("TextLabel")
-	DescLabel.Size = UDim2.new(1, -70, 0, 20)
-	DescLabel.Position = UDim2.new(0, 60, 0, 28)
-	DescLabel.BackgroundTransparency = 1
-	DescLabel.Text = desc
-	DescLabel.TextColor3 = Color3.fromRGB(220, 220, 225)
-	DescLabel.Font = Enum.Font.SourceSans
-	DescLabel.TextSize = 13
-	DescLabel.TextXAlignment = Enum.TextXAlignment.Left
-	DescLabel.Parent = NotifyFrame
+		local DescLabel = Instance.new("TextLabel")
+		DescLabel.Size = UDim2.new(1, -70, 0, 20)
+		DescLabel.Position = UDim2.new(0, 60, 0, 28)
+		DescLabel.BackgroundTransparency = 1
+		DescLabel.Text = desc
+		DescLabel.TextColor3 = Color3.fromRGB(220, 220, 225)
+		DescLabel.Font = Enum.Font.SourceSans
+		DescLabel.TextSize = 13
+		DescLabel.TextXAlignment = Enum.TextXAlignment.Left
+		DescLabel.Parent = NotifyFrame
 
-	-- Hiệu ứng trượt mượt mà đi vào từ bên phải
-	NotifyFrame:TweenPosition(UDim2.new(1, -280, 1, -85), Enum.EasingDirection.Out, Enum.EasingStyle.Back, 0.5, true)
+		NotifyFrame:TweenPosition(UDim2.new(1, -280, 1, -85), Enum.EasingDirection.Out, Enum.EasingStyle.Back, 0.5, true)
 
-	-- Tự động thu hồi và biến mất sau 4 giây
-	task.delay(4, function()
-		if NotifyFrame then
-			local closeTween = TweenService:Create(NotifyFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-				Position = UDim2.new(1, 30, 1, -85),
-				BackgroundTransparency = 1
-			})
-			closeTween:Play()
-			closeTween.Completed:Connect(function() NotifyFrame:Destroy() end)
-		end
+		task.delay(4, function()
+			if NotifyFrame and NotifyFrame.Parent then
+				local closeTween = TweenService:Create(NotifyFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+					Position = UDim2.new(1, 30, 1, -85),
+					BackgroundTransparency = 1
+				})
+				closeTween:Play()
+				closeTween.Completed:Connect(function() NotifyFrame:Destroy() end)
+			end
+		end)
 	end)
 end
 
--- Gọi thông báo ngay lập tức khi chạy script
-ShowAchievementNotify("Mở khóa Thành Tựu!", "NguyenDzHub v4.0 đã sẵn sàng.")
+-- Thông báo script đã kích hoạt ngầm thành công
+ShowAchievementNotify("Mở khóa Thành Tựu!", "NguyenDzHub v4.1 đã sẵn sàng.")
 
 ----------------------------------------------------------------
 -- [2] CỬA SỔ CÂU HỎI BẤT BUỘC
@@ -261,7 +256,7 @@ TitleText.Parent = TopBar
 TitleText.Size = UDim2.new(1, -90, 1, 0)
 TitleText.Position = UDim2.new(0, 15, 0, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "NguyenDzHub : Nguyên Sigma Edition v4.0" 
+TitleText.Text = "NguyenDzHub : Nguyên Sigma Edition v4.1" 
 TitleText.TextColor3 = Color3.fromRGB(240, 240, 245)
 TitleText.Font = Enum.Font.SourceSansBold
 TitleText.TextSize = 15
@@ -564,4 +559,10 @@ end
 local MainTab = CreateTab("Main Hacks")
 local StatusTab = CreateTab("Status/Configs")
 local UtilityTab = CreateTab("Utility")
-local InfoT
+local InfoTab = CreateTab("Thông tin")
+
+Tabs["Main Hacks"].Visible = true
+TabButtons["Main Hacks"].BackgroundTransparency = 0.4
+TabButtons["Main Hacks"].TextColor3 = Color3.fromRGB(255, 255, 255)
+
+-- ==================== TAB 1: MAIN HA

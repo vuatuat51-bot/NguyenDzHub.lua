@@ -6,8 +6,9 @@ local Lighting = game:GetService("Lighting")
 local TeleportService = game:GetService("TeleportService")
 
 local player = Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local humanoid = char:WaitForChild("Humanoid")
+-- Tối ưu tốc độ lấy Character để script load ngay lập tức không bị delay
+local char = player.Character or player.CharacterInstance or nil
+local humanoid = char and char:FindFirstChildOfClass("Humanoid") or nil
 
 -- ==================== HỆ THỐNG BIẾN QUẢN LÝ TÍNH NĂNG ====================
 local noclip = false
@@ -25,9 +26,8 @@ local fixLagEnabled = false
 local FlySpeed = 50
 local CustomSpeed = 16
 local CustomJump = 50
-local MenuScale = 1.0 -- Biến lưu trữ tỷ lệ phóng to/thu nhỏ của Menu
+local MenuScale = 1.0 
 
--- Biến quản lý hệ thống Bay nâng cấp (Vencible Fly Engine)
 local flyBodyGyro = nil
 local flyBodyVelocity = nil
 
@@ -53,7 +53,7 @@ end
 
 player.CharacterAdded:Connect(function(newChar)
 	char = newChar
-	humanoid = newChar:WaitForChild("Humanoid")
+	humanoid = newChar:WaitForChild("Humanoid", 3)
 	flying = false
 	noclip = false
 	if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
@@ -71,40 +71,115 @@ local function InitiateAntiBan()
 		gmt.__namecall = newcclosure(function(self, ...)
 			local method = getnamecallmethod()
 			if not checkcaller() then
-				if method == "Kick" or method == "kick" then
-					return nil
-				elseif method == "FireServer" and self.Name:lower():find("cheat") then
-					return nil
-				end
+				if method == "Kick" or method == "kick" then return nil
+				elseif method == "FireServer" and self.Name:lower():find("cheat") then return nil end
 			end
 			return oldNamecall(self, ...)
 		end)
 
 		gmt.__index = newcclosure(function(self, property)
 			if not checkcaller() and self:IsA("Humanoid") then
-				if property == "WalkSpeed" then
-					return 16
-				elseif property == "JumpPower" then
-					return 50
-				elseif property == "PlatformStand" then
-					return false
-				end
+				if property == "WalkSpeed" then return 16
+				elseif property == "JumpPower" then return 50
+				elseif property == "PlatformStand" then return false end
 			end
 			return oldIndex(self, property)
 		end)
 		setreadonly(gmt, true)
 	end
 end
-pcall(InitiateAntiBan)
+task.spawn(function() pcall(InitiateAntiBan) end) -- Chạy ngầm để không cản trở UI load
 
 -- ==================== HỆ THỐNG GIAO DIỆN (GUI) ====================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NguyenDzHub_Menu_v3_8"
+ScreenGui.Name = "NguyenDzHub_Menu_v4_0"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
 ----------------------------------------------------------------
--- [1] CỬA SỔ CÂU HỎI BẤT BUỘC
+-- [NEW] HỆ THỐNG THÔNG BÁO THÀNH TỰU (ACHIEVEMENT NOTIFICATION)
+----------------------------------------------------------------
+local function ShowAchievementNotify(title, desc)
+	local NotifyFrame = Instance.new("Frame")
+	NotifyFrame.Size = UDim2.new(0, 260, 0, 65)
+	-- Vị trí xuất phát ẩn ngoài rìa màn hình bên phải góc dưới
+	NotifyFrame.Position = UDim2.new(1, 30, 1, -85)
+	NotifyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+	NotifyFrame.BackgroundTransparency = 0.15
+	NotifyFrame.BorderSizePixel = 0
+	NotifyFrame.Parent = ScreenGui
+	Instance.new("UICorner", NotifyFrame).CornerRadius = UDim.new(0, 8)
+
+	-- Thanh màu trang trí cạnh trái thông báo
+	local SideLine = Instance.new("Frame")
+	SideLine.Size = UDim2.new(0, 4, 1, 0)
+	SideLine.BackgroundColor3 = ThemeColor
+	SideLine.BorderSizePixel = 0
+	SideLine.Parent = NotifyFrame
+	Instance.new("UICorner", SideLine).CornerRadius = UDim.new(0, 8)
+	ObjectsToTheme[SideLine] = "BackgroundColor3"
+
+	-- Icon giả lập thành tựu dạng tròn
+	local IconBox = Instance.new("Frame")
+	IconBox.Size = UDim2.new(0, 35, 0, 35)
+	IconBox.Position = UDim2.new(0, 15, 0.5, -17)
+	IconBox.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+	IconBox.BorderSizePixel = 0
+	IconBox.Parent = NotifyFrame
+	Instance.new("UICorner", IconBox).CornerRadius = UDim.new(0, 18)
+
+	local IconText = Instance.new("TextLabel")
+	IconText.Size = UDim2.new(1, 0, 1, 0)
+	IconText.BackgroundTransparency = 1
+	IconText.Text = "🏆"
+	IconText.TextSize = 18
+	IconText.Parent = IconBox
+
+	-- Tiêu đề thông báo
+	local TitleLabel = Instance.new("TextLabel")
+	TitleLabel.Size = UDim2.new(1, -70, 0, 20)
+	TitleLabel.Position = UDim2.new(0, 60, 0, 12)
+	TitleLabel.BackgroundTransparency = 1
+	TitleLabel.Text = title
+	TitleLabel.TextColor3 = Color3.fromRGB(255, 215, 0) -- Màu vàng Gold quý phái
+	TitleLabel.Font = Enum.Font.SourceSansBold
+	TitleLabel.TextSize = 14
+	TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	TitleLabel.Parent = NotifyFrame
+
+	-- Nội dung mô tả chi tiết
+	local DescLabel = Instance.new("TextLabel")
+	DescLabel.Size = UDim2.new(1, -70, 0, 20)
+	DescLabel.Position = UDim2.new(0, 60, 0, 28)
+	DescLabel.BackgroundTransparency = 1
+	DescLabel.Text = desc
+	DescLabel.TextColor3 = Color3.fromRGB(220, 220, 225)
+	DescLabel.Font = Enum.Font.SourceSans
+	DescLabel.TextSize = 13
+	DescLabel.TextXAlignment = Enum.TextXAlignment.Left
+	DescLabel.Parent = NotifyFrame
+
+	-- Hiệu ứng trượt mượt mà đi vào từ bên phải
+	NotifyFrame:TweenPosition(UDim2.new(1, -280, 1, -85), Enum.EasingDirection.Out, Enum.EasingStyle.Back, 0.5, true)
+
+	-- Tự động thu hồi và biến mất sau 4 giây
+	task.delay(4, function()
+		if NotifyFrame then
+			local closeTween = TweenService:Create(NotifyFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				Position = UDim2.new(1, 30, 1, -85),
+				BackgroundTransparency = 1
+			})
+			closeTween:Play()
+			closeTween.Completed:Connect(function() NotifyFrame:Destroy() end)
+		end
+	end)
+end
+
+-- Gọi thông báo ngay lập tức khi chạy script
+ShowAchievementNotify("Mở khóa Thành Tựu!", "NguyenDzHub v4.0 đã sẵn sàng.")
+
+----------------------------------------------------------------
+-- [2] CỬA SỔ CÂU HỎI BẤT BUỘC
 ----------------------------------------------------------------
 local QuestionFrame = Instance.new("Frame")
 QuestionFrame.Parent = ScreenGui
@@ -146,7 +221,7 @@ Btn2.Text = "Có"
 Instance.new("UICorner", Btn2).CornerRadius = UDim.new(0, 6)
 
 ----------------------------------------------------------------
--- [2] MENU CHÍNH
+-- [3] MENU CHÍNH
 ----------------------------------------------------------------
 local MainMenu = Instance.new("Frame")
 MainMenu.Parent = ScreenGui
@@ -159,26 +234,17 @@ MainMenu.Draggable = true
 MainMenu.Visible = false
 Instance.new("UICorner", MainMenu).CornerRadius = UDim.new(0, 12)
 
--- Lưu lại kích thước gốc để phục vụ tính năng Scale tỷ lệ
 local BaseMenuSize = Vector2.new(560, 360)
 
--- Hàm xử lý thay đổi độ nhỏ lớn (Scale Engine)
 local function ChangeMenuScale(scaleValue)
-	MenuScale = math.clamp(scaleValue, 0.6, 1.5) -- Giới hạn thu nhỏ tối đa 60%, phóng to tối đa 150%
-	
-	-- Tính toán kích thước mới dựa trên tỷ lệ và kích thước gốc
+	MenuScale = math.clamp(scaleValue, 0.6, 1.5)
 	local newWidth = BaseMenuSize.X * MenuScale
 	local newHeight = BaseMenuSize.Y * MenuScale
-	
-	-- Giữ nguyên tâm Menu khi thay đổi kích thước
 	MainMenu.Size = UDim2.new(0, newWidth, 0, newHeight)
 	
-	-- Tự động co giãn cỡ chữ của các TextLabel/TextButton có trong Menu để không bị vỡ bố cục
 	for _, child in ipairs(MainMenu:GetDescendants()) do
 		if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
-			if not child:GetAttribute("BaseTextSize") then
-				child:SetAttribute("BaseTextSize", child.TextSize)
-			end
+			if not child:GetAttribute("BaseTextSize") then child:SetAttribute("BaseTextSize", child.TextSize) end
 			local baseSize = child:GetAttribute("BaseTextSize")
 			child.TextSize = math.clamp(math.round(baseSize * MenuScale), 8, 32)
 		end
@@ -195,7 +261,7 @@ TitleText.Parent = TopBar
 TitleText.Size = UDim2.new(1, -90, 1, 0)
 TitleText.Position = UDim2.new(0, 15, 0, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "NguyenDzHub : Nguyên Sigma Edition v3.8" 
+TitleText.Text = "NguyenDzHub : Nguyên Sigma Edition v4.0" 
 TitleText.TextColor3 = Color3.fromRGB(240, 240, 245)
 TitleText.Font = Enum.Font.SourceSansBold
 TitleText.TextSize = 15
@@ -407,7 +473,6 @@ local function CreateInputRow(page, featureText, defaultText, callback)
 	end)
 end
 
--- [NEW] Hàm khởi tạo cấu trúc thanh kéo (Slider) cho tính năng chỉnh Kích Thước Menu
 local function CreateSliderRow(page, featureText, min, max, default, callback)
 	local Row = Instance.new("Frame")
 	Row.Size = UDim2.new(1, -10, 0, 45)
@@ -462,21 +527,13 @@ local function CreateSliderRow(page, featureText, min, max, default, callback)
 	end
 
 	SliderButton.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			isSliding = true
-		end
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then isSliding = true end
 	end)
-
 	UIS.InputChanged:Connect(function(input)
-		if isSliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-			UpdateSlider(input.Position)
-		end
+		if isSliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then UpdateSlider(input.Position) end
 	end)
-
 	UIS.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			isSliding = false
-		end
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then isSliding = false end
 	end)
 end
 
@@ -507,89 +564,4 @@ end
 local MainTab = CreateTab("Main Hacks")
 local StatusTab = CreateTab("Status/Configs")
 local UtilityTab = CreateTab("Utility")
-local InfoTab = CreateTab("Thông tin")
-
-Tabs["Main Hacks"].Visible = true
-TabButtons["Main Hacks"].BackgroundTransparency = 0.4
-TabButtons["Main Hacks"].TextColor3 = Color3.fromRGB(255, 255, 255)
-
--- ==================== TAB 1: MAIN HACKS ====================
-CreateSectionTitle(MainTab, "Hệ thống Di chuyển & ESP")
-
-SyncUINoclip = CreateToggleRow(MainTab, "Xuyên tường (Noclip)", false, function(state)
-	noclip = state
-end)
-
-SyncUIFly = CreateToggleRow(MainTab, "Bay tự do (WASD Advanced)", false, function(state)
-	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-	flying = state
-	local hrp = char.HumanoidRootPart
-	
-	if flying then
-		flyBodyGyro = Instance.new("BodyGyro")
-		flyBodyGyro.P = 9e4
-		flyBodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
-		flyBodyGyro.cframe = hrp.CFrame
-		flyBodyGyro.Parent = hrp
-		
-		flyBodyVelocity = Instance.new("BodyVelocity")
-		flyBodyVelocity.velocity = Vector3.new(0, 0.1, 0)
-		flyBodyVelocity.maxForce = Vector3.new(9e9, 9e9, 9e9)
-		flyBodyVelocity.Parent = hrp
-		
-		if humanoid then humanoid.PlatformStand = true end
-	else
-		if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
-		if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
-		if humanoid then humanoid.PlatformStand = false end
-	end
-end)
-
-CreateToggleRow(MainTab, "Nhảy vô hạn (Infinite Jump)", false, function(state)
-	infJump = state
-end)
-
-local espHighlights = {}
-local itemEspObjects = {} 
-
-local function updateESP()
-	for _, p in ipairs(Players:GetPlayers()) do
-		if p ~= player and p.Character then
-			if espEnabled then
-				if not espHighlights[p] then
-					local hi = Instance.new("Highlight")
-					hi.Name = "PlayerESP_NguyenDz"
-					hi.FillColor = Color3.fromRGB(255, 50, 50)
-					hi.FillTransparency = 0.5
-					hi.OutlineColor = Color3.fromRGB(255, 255, 255)
-					hi.Parent = ScreenGui
-					hi.Adornee = p.Character
-					espHighlights[p] = hi
-				end
-			else
-				if espHighlights[p] then espHighlights[p]:Destroy() espHighlights[p] = nil end
-			end
-		end
-	end
-	
-	for _, v in ipairs(workspace:GetDescendants()) do
-		if v:IsA("Model") and v:FindFirstChildOfClass("Humanoid") and not Players:GetPlayerFromCharacter(v) then
-			if npcEspEnabled then
-				if not espHighlights[v] then
-					local hi = Instance.new("Highlight")
-					hi.Name = "NpcESP_NguyenDz"
-					hi.FillColor = Color3.fromRGB(0, 255, 100)
-					hi.FillTransparency = 0.6
-					hi.OutlineColor = Color3.fromRGB(255, 255, 0)
-					hi.Parent = ScreenGui
-					hi.Adornee = v
-					espHighlights[v] = hi
-				end
-			else
-				if espHighlights[v] then espHighlights[v]:Destroy() espHighlights[v] = nil end
-			end
-		end
-	end
-
-	if not itemEspEnabled then
-		for obj, tag in pairs
+local InfoT

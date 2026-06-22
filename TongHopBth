@@ -15,28 +15,28 @@ local flying = false
 local infJump = false
 local espEnabled = false
 local npcEspEnabled = false
+local itemEspEnabled = false 
 local fullbright = false
 local antiStun = false
 local antiDamage = false
 local freeCamEnabled = false
-local fixLagEnabled = false -- Biến quản lý trạng thái Fix Lag
+local fixLagEnabled = false 
 
 local FlySpeed = 50
 local CustomSpeed = 16
 local CustomJump = 50
+local MenuScale = 1.0 -- Biến lưu trữ tỷ lệ phóng to/thu nhỏ của Menu
 
-local flyAttachment = nil
-local flyVelocity = nil
-local freeCamPart = nil
+-- Biến quản lý hệ thống Bay nâng cấp (Vencible Fly Engine)
+local flyBodyGyro = nil
+local flyBodyVelocity = nil
 
--- Lưu lại cấu hình gốc để khôi phục khi tắt Fix Lag
 local originalMaterials = {}
 local originalLighting = {
 	GlobalShadows = Lighting.GlobalShadows,
 	Technology = Lighting.Technology
 }
 
--- Quản lý màu sắc chủ đạo (Theme Color)
 local ThemeColor = Color3.fromRGB(255, 50, 50) 
 local ObjectsToTheme = {}
 
@@ -56,18 +56,55 @@ player.CharacterAdded:Connect(function(newChar)
 	humanoid = newChar:WaitForChild("Humanoid")
 	flying = false
 	noclip = false
-	flyAttachment = nil
-	flyVelocity = nil
+	if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
+	if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
 end)
+
+-- ==================== HỆ THỐNG ANTI-BAN (BYPASS ANTI-CHEAT) ====================
+local function InitiateAntiBan()
+	local gmt = getrawmetatable(game)
+	if gmt and setreadonly then
+		setreadonly(gmt, false)
+		local oldNamecall = gmt.__namecall
+		local oldIndex = gmt.__index
+
+		gmt.__namecall = newcclosure(function(self, ...)
+			local method = getnamecallmethod()
+			if not checkcaller() then
+				if method == "Kick" or method == "kick" then
+					return nil
+				elseif method == "FireServer" and self.Name:lower():find("cheat") then
+					return nil
+				end
+			end
+			return oldNamecall(self, ...)
+		end)
+
+		gmt.__index = newcclosure(function(self, property)
+			if not checkcaller() and self:IsA("Humanoid") then
+				if property == "WalkSpeed" then
+					return 16
+				elseif property == "JumpPower" then
+					return 50
+				elseif property == "PlatformStand" then
+					return false
+				end
+			end
+			return oldIndex(self, property)
+		end)
+		setreadonly(gmt, true)
+	end
+end
+pcall(InitiateAntiBan)
 
 -- ==================== HỆ THỐNG GIAO DIỆN (GUI) ====================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NguyenDzHub_Menu_v3_1"
+ScreenGui.Name = "NguyenDzHub_Menu_v3_8"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
 ----------------------------------------------------------------
--- [1] CỬA SỔ CÂU HỎI BẮT BUỘC
+-- [1] CỬA SỔ CÂU HỎI BẤT BUỘC
 ----------------------------------------------------------------
 local QuestionFrame = Instance.new("Frame")
 QuestionFrame.Parent = ScreenGui
@@ -122,6 +159,32 @@ MainMenu.Draggable = true
 MainMenu.Visible = false
 Instance.new("UICorner", MainMenu).CornerRadius = UDim.new(0, 12)
 
+-- Lưu lại kích thước gốc để phục vụ tính năng Scale tỷ lệ
+local BaseMenuSize = Vector2.new(560, 360)
+
+-- Hàm xử lý thay đổi độ nhỏ lớn (Scale Engine)
+local function ChangeMenuScale(scaleValue)
+	MenuScale = math.clamp(scaleValue, 0.6, 1.5) -- Giới hạn thu nhỏ tối đa 60%, phóng to tối đa 150%
+	
+	-- Tính toán kích thước mới dựa trên tỷ lệ và kích thước gốc
+	local newWidth = BaseMenuSize.X * MenuScale
+	local newHeight = BaseMenuSize.Y * MenuScale
+	
+	-- Giữ nguyên tâm Menu khi thay đổi kích thước
+	MainMenu.Size = UDim2.new(0, newWidth, 0, newHeight)
+	
+	-- Tự động co giãn cỡ chữ của các TextLabel/TextButton có trong Menu để không bị vỡ bố cục
+	for _, child in ipairs(MainMenu:GetDescendants()) do
+		if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
+			if not child:GetAttribute("BaseTextSize") then
+				child:SetAttribute("BaseTextSize", child.TextSize)
+			end
+			local baseSize = child:GetAttribute("BaseTextSize")
+			child.TextSize = math.clamp(math.round(baseSize * MenuScale), 8, 32)
+		end
+	end
+end
+
 local TopBar = Instance.new("Frame")
 TopBar.Parent = MainMenu
 TopBar.Size = UDim2.new(1, 0, 0, 40)
@@ -132,7 +195,7 @@ TitleText.Parent = TopBar
 TitleText.Size = UDim2.new(1, -90, 1, 0)
 TitleText.Position = UDim2.new(0, 15, 0, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "NguyenDzHub : Nguyên Sigma Edition v3.1" 
+TitleText.Text = "NguyenDzHub : Nguyên Sigma Edition v3.8" 
 TitleText.TextColor3 = Color3.fromRGB(240, 240, 245)
 TitleText.Font = Enum.Font.SourceSansBold
 TitleText.TextSize = 15
@@ -344,6 +407,79 @@ local function CreateInputRow(page, featureText, defaultText, callback)
 	end)
 end
 
+-- [NEW] Hàm khởi tạo cấu trúc thanh kéo (Slider) cho tính năng chỉnh Kích Thước Menu
+local function CreateSliderRow(page, featureText, min, max, default, callback)
+	local Row = Instance.new("Frame")
+	Row.Size = UDim2.new(1, -10, 0, 45)
+	Row.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+	Row.BackgroundTransparency = 0.3
+	Row.Parent = page
+	Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 6)
+
+	local Label = Instance.new("TextLabel")
+	Label.Size = UDim2.new(0.4, 0, 1, 0)
+	Label.Position = UDim2.new(0, 12, 0, 0)
+	Label.BackgroundTransparency = 1
+	Label.Text = featureText .. " (" .. string.format("%.1f", default) .. "x)"
+	Label.TextColor3 = Color3.fromRGB(210, 210, 215)
+	Label.Font = Enum.Font.SourceSans
+	Label.TextSize = 14
+	Label.TextXAlignment = Enum.TextXAlignment.Left
+	Label.Parent = Row
+
+	local SliderContainer = Instance.new("Frame")
+	SliderContainer.Size = UDim2.new(0, 120, 0, 6)
+	SliderContainer.Position = UDim2.new(1, -140, 0, 20)
+	SliderContainer.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+	SliderContainer.Parent = Row
+	Instance.new("UICorner", SliderContainer)
+
+	local SliderFill = Instance.new("Frame")
+	SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+	SliderFill.BackgroundColor3 = ThemeColor
+	SliderFill.Parent = SliderContainer
+	Instance.new("UICorner", SliderFill)
+	ObjectsToTheme[SliderFill] = "BackgroundColor3"
+
+	local SliderButton = Instance.new("TextButton")
+	SliderButton.Size = UDim2.new(0, 14, 0, 14)
+	SliderButton.Position = UDim2.new((default - min) / (max - min), -7, 0, -4)
+	SliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	SliderButton.Text = ""
+	SliderButton.Parent = SliderContainer
+	Instance.new("UICorner", SliderButton).CornerRadius = UDim.new(0, 7)
+
+	local isSliding = false
+
+	local function UpdateSlider(inputPosition)
+		local percentage = math.clamp((inputPosition.X - SliderContainer.AbsolutePosition.X) / SliderContainer.AbsoluteSize.X, 0, 1)
+		SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+		SliderButton.Position = UDim2.new(percentage, -7, 0, -4)
+		
+		local realValue = min + (percentage * (max - min))
+		Label.Text = featureText .. " (" .. string.format("%.1f", realValue) .. "x)"
+		callback(realValue)
+	end
+
+	SliderButton.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			isSliding = true
+		end
+	end)
+
+	UIS.InputChanged:Connect(function(input)
+		if isSliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+			UpdateSlider(input.Position)
+		end
+	end)
+
+	UIS.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			isSliding = false
+		end
+	end)
+end
+
 local function CreateButtonRow(page, btnText, callback)
 	local Row = Instance.new("Frame")
 	Row.Size = UDim2.new(1, -10, 0, 45)
@@ -384,25 +520,28 @@ SyncUINoclip = CreateToggleRow(MainTab, "Xuyên tường (Noclip)", false, funct
 	noclip = state
 end)
 
-SyncUIFly = CreateToggleRow(MainTab, "Bay tự do (WASD)", false, function(state)
-	if not char or not humanoid then return end
+SyncUIFly = CreateToggleRow(MainTab, "Bay tự do (WASD Advanced)", false, function(state)
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
 	flying = state
+	local hrp = char.HumanoidRootPart
+	
 	if flying then
-		humanoid.PlatformStand = true
-		local hrp = char:FindFirstChild("HumanoidRootPart")
-		if hrp then
-			if not flyAttachment then flyAttachment = Instance.new("Attachment", hrp) end
-			if not flyVelocity then 
-				flyVelocity = Instance.new("LinearVelocity", hrp)
-				flyVelocity.Attachment0 = flyAttachment
-				flyVelocity.MaxForce = math.huge
-			end
-			flyVelocity.VectorVelocity = Vector3.new(0, 0, 0)
-		end
+		flyBodyGyro = Instance.new("BodyGyro")
+		flyBodyGyro.P = 9e4
+		flyBodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+		flyBodyGyro.cframe = hrp.CFrame
+		flyBodyGyro.Parent = hrp
+		
+		flyBodyVelocity = Instance.new("BodyVelocity")
+		flyBodyVelocity.velocity = Vector3.new(0, 0.1, 0)
+		flyBodyVelocity.maxForce = Vector3.new(9e9, 9e9, 9e9)
+		flyBodyVelocity.Parent = hrp
+		
+		if humanoid then humanoid.PlatformStand = true end
 	else
-		humanoid.PlatformStand = false
-		if flyVelocity then flyVelocity:Destroy() flyVelocity = nil end
-		if flyAttachment then flyAttachment:Destroy() flyAttachment = nil end
+		if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
+		if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
+		if humanoid then humanoid.PlatformStand = false end
 	end
 end)
 
@@ -411,6 +550,8 @@ CreateToggleRow(MainTab, "Nhảy vô hạn (Infinite Jump)", false, function(sta
 end)
 
 local espHighlights = {}
+local itemEspObjects = {} 
+
 local function updateESP()
 	for _, p in ipairs(Players:GetPlayers()) do
 		if p ~= player and p.Character then
@@ -449,372 +590,6 @@ local function updateESP()
 			end
 		end
 	end
-end
 
-CreateToggleRow(MainTab, "Xuyên tường Người (Player ESP)", false, function(state)
-	espEnabled = state
-	updateESP()
-end)
-
-CreateToggleRow(MainTab, "Xuyên tường Quái/NPC (NPC ESP)", false, function(state)
-	npcEspEnabled = state
-	updateESP()
-end)
-
-CreateToggleRow(MainTab, "Camera Tự Do (Free Cam)", false, function(state)
-	freeCamEnabled = state
-	local camera = workspace.CurrentCamera
-	if freeCamEnabled then
-		if char and char:FindFirstChild("HumanoidRootPart") then
-			camera.CameraType = Enum.CameraType.Scriptable
-			freeCamPart = Instance.new("Part")
-			freeCamPart.Size = Vector3.new(1,1,1)
-			freeCamPart.Transparency = 1
-			freeCamPart.CanCollide = false
-			freeCamPart.Anchored = true
-			freeCamPart.CFrame = camera.CFrame
-			freeCamPart.Parent = workspace
-		end
-	else
-		camera.CameraType = Enum.CameraType.Custom
-		if freeCamPart then freeCamPart:Destroy() freeCamPart = nil end
-	end
-end)
-
--- ==================== TAB 2: STATUS/CONFIGS ====================
-CreateSectionTitle(StatusTab, "Cấu hình Hack & Đổi màu UI & Fix Lag")
-
-local ThemeRow = Instance.new("Frame")
-ThemeRow.Size = UDim2.new(1, -10, 0, 45)
-ThemeRow.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-ThemeRow.BackgroundTransparency = 0.3
-ThemeRow.Parent = StatusTab
-Instance.new("UICorner", ThemeRow).CornerRadius = UDim.new(0, 6)
-
-local ThemeLabel = Instance.new("TextLabel")
-ThemeLabel.Size = UDim2.new(0.4, 0, 1, 0)
-ThemeLabel.Position = UDim2.new(0, 12, 0, 0)
-ThemeLabel.BackgroundTransparency = 1
-ThemeLabel.Text = "Chọn màu sắc UI:"
-ThemeLabel.TextColor3 = Color3.fromRGB(210, 210, 215)
-ThemeLabel.Font = Enum.Font.SourceSans
-ThemeLabel.TextSize = 14
-ThemeLabel.TextXAlignment = Enum.TextXAlignment.Left
-ThemeLabel.Parent = ThemeRow
-
-local colors = {Color3.fromRGB(255, 50, 50), Color3.fromRGB(50, 120, 255), Color3.fromRGB(150, 50, 255), Color3.fromRGB(0, 255, 150), Color3.fromRGB(255, 200, 0)}
-for i, col in ipairs(colors) do
-	local colBtn = Instance.new("TextButton")
-	colBtn.Size = UDim2.new(0, 24, 0, 24)
-	colBtn.Position = UDim2.new(1, -150 + (i * 28), 0, 10)
-	colBtn.BackgroundColor3 = col
-	colBtn.Text = ""
-	colBtn.Parent = ThemeRow
-	Instance.new("UICorner", colBtn).CornerRadius = UDim.new(0, 12)
-	colBtn.MouseButton1Click:Connect(function()
-		UpdateTheme(col)
-	end)
-end
-
--- TÍNH NĂNG TỐI ƯU GIẢM LAG (FPS BOOSTER) CHUYÊN DỤNG
-CreateToggleRow(StatusTab, "Chế độ Giảm Đồ Họa / Fix Lag", false, function(state)
-	fixLagEnabled = state
-	if fixLagEnabled then
-		-- Tắt đổ bóng toàn cục để giải phóng CPU/GPU
-		Lighting.GlobalShadows = false
-		
-		-- Quét tất cả vật thể hiện có để tối giản vật liệu và hiệu ứng
-		for _, v in ipairs(workspace:GetDescendants()) do
-			if v:IsA("BasePart") and not v:IsA("MeshPart") then
-				if not originalMaterials[v] then originalMaterials[v] = v.Material end
-				v.Material = Enum.Material.SmoothPlastic
-			elseif v:IsA("Decal") or v:IsA("Texture") then
-				v.Transparency = 1 -- Ẩn decan dán tường giảm tải bộ nhớ nạp ảnh
-			elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Sparkles") then
-				v.Enabled = false -- Đóng tất cả hiệu ứng chiêu thức, khói bụi gây tụt FPS
-			end
-		end
-	else
-		-- Trả đồ họa về lại nguyên bản khi tắt tính năng
-		Lighting.GlobalShadows = originalLighting.GlobalShadows
-		for part, mat in pairs(originalMaterials) do
-			if part and part.Parent then part.Material = mat end
-		end
-		table.clear(originalMaterials)
-		
-		for _, v in ipairs(workspace:GetDescendants()) do
-			if v:IsA("Decal") or v:IsA("Texture") then
-				v.Transparency = 0
-			elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Sparkles") then
-				v.Enabled = true
-			end
-		end
-	end
-end)
-
-CreateInputRow(StatusTab, "Tốc độ Bay:", tostring(FlySpeed), function(text)
-	local num = tonumber(text)
-	if num then FlySpeed = math.clamp(num, 10, 500) end
-end)
-
-CreateInputRow(StatusTab, "Tốc độ Chạy bộ:", tostring(CustomSpeed), function(text)
-	local num = tonumber(text)
-	if num then 
-		CustomSpeed = math.clamp(num, 16, 500) 
-		if humanoid then humanoid.WalkSpeed = CustomSpeed end
-	end
-end)
-
-CreateInputRow(StatusTab, "Độ Cao Lực Nhảy:", tostring(CustomJump), function(text)
-	local num = tonumber(text)
-	if num then 
-		CustomJump = math.clamp(num, 50, 500) 
-		if humanoid then
-			if humanoid.UseJumpPower then humanoid.JumpPower = CustomJump else humanoid.JumpHeight = CustomJump / 7.2 end
-		end
-	end
-end)
-
-CreateToggleRow(StatusTab, "Tăng độ sáng (Fullbright)", false, function(state)
-	fullbright = state
-	if fullbright then
-		Lighting.Ambient = Color3.fromRGB(255, 255, 255)
-		Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
-	else
-		Lighting.Ambient = Color3.fromRGB(128, 128, 128)
-		Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
-	end
-end)
-
-CreateToggleRow(StatusTab, "Chống choáng VIP (Anti Stun)", false, function(state)
-	antiStun = state
-end)
-
-CreateToggleRow(StatusTab, "Chống mất máu (Anti Damage)", false, function(state)
-	antiDamage = state
-end)
-
--- ==================== TAB 3: UTILITY ====================
-CreateSectionTitle(UtilityTab, "Hệ thống Tiện ích server")
-
-CreateButtonRow(UtilityTab, "Vào lại game phòng cũ (Rejoin)", function()
-	TeleportService:Teleport(game.PlaceId, player)
-end)
-
-CreateButtonRow(UtilityTab, "Đổi sang Server khác (Server Hop)", function()
-	local success, result = pcall(function()
-		return game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100")
-	end)
-	if success then
-		for _, s in ipairs(game:GetService("HttpService"):JSONDecode(result).data) do
-			if s.playing < s.maxPlayers and s.id ~= game.JobId then
-				TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, player)
-				break
-			end
-		end
-	end
-end)
-
--- ==================== TAB 4: THÔNG TIN ====================
-local InfoLabel = Instance.new("TextLabel")
-InfoLabel.Size = UDim2.new(1, -20, 0, 60)
-InfoLabel.Position = UDim2.new(0, 10, 0, 20)
-InfoLabel.BackgroundTransparency = 1
-InfoLabel.Text = "The upgrade is coming soon."
-InfoLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-InfoLabel.Font = Enum.Font.SourceSansItalic
-InfoLabel.TextSize = 18
-InfoLabel.TextXAlignment = Enum.TextXAlignment.Center
-InfoLabel.Parent = InfoTab
-
-----------------------------------------------------------------
--- [3] NÚT ICON CHỮ "N" TRÒN VÀ CÁC NÚT PHỤ BẬT TẮT NHANH
-----------------------------------------------------------------
-local OpenMenuBtn = Instance.new("TextButton")
-OpenMenuBtn.Parent = ScreenGui
-OpenMenuBtn.Size = UDim2.new(0, 46, 0, 46)
-OpenMenuBtn.Position = UDim2.new(0, 15, 0.4, 0)
-OpenMenuBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-OpenMenuBtn.Text = "N" 
-OpenMenuBtn.TextColor3 = ThemeColor
-OpenMenuBtn.Font = Enum.Font.SourceSansBold
-OpenMenuBtn.TextSize = 22
-OpenMenuBtn.Visible = false 
-Instance.new("UICorner", OpenMenuBtn).CornerRadius = UDim.new(0, 23)
-ObjectsToTheme[OpenMenuBtn] = "TextColor3"
-
-local MiniFlyBtn = Instance.new("TextButton")
-MiniFlyBtn.Parent = ScreenGui
-MiniFlyBtn.Size = UDim2.new(0, 40, 0, 25)
-MiniFlyBtn.Position = UDim2.new(0, 18, 0.4, 55)
-MiniFlyBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-MiniFlyBtn.BackgroundTransparency = 0.2
-MiniFlyBtn.Text = "FLY"
-MiniFlyBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-MiniFlyBtn.Font = Enum.Font.SourceSansBold
-MiniFlyBtn.TextSize = 12
-MiniFlyBtn.Visible = false
-Instance.new("UICorner", MiniFlyBtn).CornerRadius = UDim.new(0, 4)
-
-local MiniClipBtn = Instance.new("TextButton")
-MiniClipBtn.Parent = ScreenGui
-MiniClipBtn.Size = UDim2.new(0, 40, 0, 25)
-MiniClipBtn.Position = UDim2.new(0, 18, 0.4, 85)
-MiniClipBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-MiniClipBtn.BackgroundTransparency = 0.2
-MiniClipBtn.Text = "CLIP"
-MiniClipBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-MiniClipBtn.Font = Enum.Font.SourceSansBold
-MiniClipBtn.TextSize = 12
-MiniClipBtn.Visible = false
-Instance.new("UICorner", MiniClipBtn).CornerRadius = UDim.new(0, 4)
-
-local dragging, dragInput, dragStart, startPos
-OpenMenuBtn.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true dragStart = input.Position startPos = OpenMenuBtn.Position
-		input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
-	end
-end)
-OpenMenuBtn.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-end)
-UIS.InputChanged:Connect(function(input)
-	if input == dragInput and dragging then
-		local delta = input.Position - dragStart
-		local newPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-		OpenMenuBtn.Position = newPos
-		MiniFlyBtn.Position = newPos + UDim2.new(0, 3, 0, 55)
-		MiniClipBtn.Position = newPos + UDim2.new(0, 3, 0, 85)
-	end
-end)
-
--- ==================== HỆ THỐNG LOGIC ĐÓNG / MỞ / ĐIỀU KHIỂN ====================
-local function UnlockHackMenu()
-	QuestionFrame:Destroy()
-	MainMenu.Visible = true      
-	OpenMenuBtn.Visible = false  
-	MiniFlyBtn.Visible = false   
-	MiniClipBtn.Visible = false  
-end
-Btn1.MouseButton1Click:Connect(UnlockHackMenu)
-Btn2.MouseButton1Click:Connect(UnlockHackMenu)
-
-MinimizeBtn.MouseButton1Click:Connect(function()
-	MainMenu.Visible = false
-	OpenMenuBtn.Visible = true
-	MiniFlyBtn.Visible = true
-	MiniClipBtn.Visible = true
-end)
-
-OpenMenuBtn.MouseButton1Click:Connect(function()
-	MainMenu.Visible = true
-	OpenMenuBtn.Visible = false
-	MiniFlyBtn.Visible = false
-	MiniClipBtn.Visible = false
-end)
-
-MiniFlyBtn.MouseButton1Click:Connect(function()
-	SyncUIFly(not flying)
-	MiniFlyBtn.TextColor3 = flying and ThemeColor or Color3.fromRGB(200, 200, 200)
-end)
-
-MiniClipBtn.MouseButton1Click:Connect(function()
-	SyncUINoclip(not noclip)
-	MiniClipBtn.TextColor3 = noclip and ThemeColor or Color3.fromRGB(200, 200, 200)
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-	noclip = false flying = false infJump = false espEnabled = false npcEspEnabled = false fullbright = false antiStun = false antiDamage = false freeCamEnabled = false
-	if fixLagEnabled then
-		Lighting.GlobalShadows = originalLighting.GlobalShadows
-		for part, mat in pairs(originalMaterials) do if part and part.Parent then part.Material = mat end end
-	end
-	if flyVelocity then flyVelocity:Destroy() end
-	if flyAttachment then flyAttachment:Destroy() end
-	if freeCamPart then freeCamPart:Destroy() end
-	for _, hi in pairs(espHighlights) do if hi then hi:Destroy() end end
-	if humanoid then humanoid.PlatformStand = false humanoid.WalkSpeed = 16 end
-	workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
-	Lighting.Ambient = Color3.fromRGB(128, 128, 128)
-	Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
-	ScreenGui:Destroy()
-end)
-
--- ==================== VÒNG LẶP LIÊN TỤC (VẬT LÝ & GIAN LẬN) ====================
-UIS.JumpRequest:Connect(function()
-	if infJump and humanoid then humanoid:ChangeState("Jumping") end
-end)
-
-RunService.Stepped:Connect(function()
-	if noclip and char then
-		for _, part in ipairs(char:GetDescendants()) do
-			if part:IsA("BasePart") then part.CanCollide = false end
-		end
-	end
-	
-	if humanoid then
-		if antiStun then 
-			if humanoid.PlatformStand then humanoid.PlatformStand = false end
-			if humanoid:GetState() == Enum.HumanoidStateType.Ragdoll or humanoid:GetState() == Enum.HumanoidStateType.FallingDown then
-				humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
-			end
-		end
-		if antiDamage and humanoid.Health < humanoid.MaxHealth then humanoid.Health = humanoid.MaxHealth end
-	end
-end)
-
-RunService.Heartbeat:Connect(function()
-	if humanoid and char and not flying then
-		if humanoid.WalkSpeed ~= CustomSpeed then humanoid.WalkSpeed = CustomSpeed end
-	end
-end)
-
--- LẮP ĐẶT CAMERA-QUÉT: Tự động tối ưu giảm lag ngay lập tức cho quái/vật phẩm mới xuất hiện liên tục
-workspace.DescendantAdded:Connect(function(v)
-	if fixLagEnabled then
-		task.wait()
-		if v:IsA("BasePart") and not v:IsA("MeshPart") then
-			if not originalMaterials[v] then originalMaterials[v] = v.Material end
-			v.Material = Enum.Material.SmoothPlastic
-		elseif v:IsA("Decal") or v:IsA("Texture") then
-			v.Transparency = 1
-		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Sparkles") then
-			v.Enabled = false
-		end
-	end
-end)
-
-RunService.RenderStepped:Connect(function()
-	local cam = workspace.CurrentCamera
-	
-	if freeCamEnabled and freeCamPart then
-		local moveDir = Vector3.new(0, 0, 0)
-		if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
-		if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
-		if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir + cam.CFrame.RightVector * -1 end
-		if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
-		
-		freeCamPart.CFrame = freeCamPart.CFrame * CFrame.new(moveDir * 2)
-		cam.CFrame = freeCamPart.CFrame
-	end
-	
-	if flying and flyVelocity and char then
-		local moveDir = Vector3.new(0, 0, 0)
-		if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
-		if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
-		if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir + cam.CFrame.RightVector * -1 end
-		if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
-		if moveDir.Magnitude > 0 then
-			flyVelocity.VectorVelocity = moveDir.Unit * FlySpeed
-		else
-			flyVelocity.VectorVelocity = Vector3.new(0, 0, 0)
-		end
-	end
-end)
-
-task.spawn(function()
-	while task.wait(3) do
-		if espEnabled or npcEspEnabled then updateESP() end
-	end
-end)
+	if not itemEspEnabled then
+		for obj, tag in pairs

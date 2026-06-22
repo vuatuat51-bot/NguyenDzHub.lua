@@ -6,9 +6,17 @@ local Lighting = game:GetService("Lighting")
 local TeleportService = game:GetService("TeleportService")
 
 local player = Players.LocalPlayer
--- Sửa lỗi lấy Character thông minh: Không bị kẹt delay nhưng không bị nil
-local char = player.Character or player.CharacterAdded:Wait()
-local humanoid = char:WaitForChild("Humanoid", 5) or char:FindFirstChildOfClass("Humanoid")
+
+-- Khởi tạo biến rỗng để KHÔNG bị kẹt script khi tải game
+local char = nil
+local humanoid = nil
+
+-- Hàm an toàn lấy nhân vật chạy ngầm, không chặn đứng UI
+local function SafeGetCharacter()
+	char = player.Character or player.CharacterAdded:Wait()
+	humanoid = char:WaitForChild("Humanoid", 10) or char:FindFirstChildOfClass("Humanoid")
+end
+task.spawn(SafeGetCharacter)
 
 -- ==================== HỆ THỐNG BIẾN QUẢN LÝ TÍNH NĂNG ====================
 local noclip = false
@@ -30,6 +38,7 @@ local MenuScale = 1.0
 
 local flyBodyGyro = nil
 local flyBodyVelocity = nil
+local freeCamPart = nil
 
 local originalMaterials = {}
 local originalLighting = {
@@ -44,7 +53,7 @@ local function UpdateTheme(newColor)
 	ThemeColor = newColor
 	for obj, prop in pairs(ObjectsToTheme) do
 		if obj and obj.Parent then
-			obj[prop] = newColor
+			pcall(function() obj[prop] = newColor end)
 		else
 			ObjectsToTheme[obj] = nil
 		end
@@ -53,11 +62,11 @@ end
 
 player.CharacterAdded:Connect(function(newChar)
 	char = newChar
-	humanoid = newChar:WaitForChild("Humanoid", 3)
+	humanoid = newChar:WaitForChild("Humanoid", 5) or newChar:FindFirstChildOfClass("Humanoid")
 	flying = false
 	noclip = false
-	if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
-	if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
+	if flyBodyGyro then pcall(function() flyBodyGyro:Destroy() end) flyBodyGyro = nil end
+	if flyBodyVelocity then pcall(function() flyBodyVelocity:Destroy() end) flyBodyVelocity = nil end
 end)
 
 -- ==================== HỆ THỐNG ANTI-BAN (BYPASS ANTI-CHEAT) ====================
@@ -92,86 +101,88 @@ task.spawn(function() pcall(InitiateAntiBan) end)
 
 -- ==================== HỆ THỐNG GIAO DIỆN (GUI) ====================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NguyenDzHub_Menu_v4_1"
+ScreenGui.Name = "NguyenDzHub_Menu_v4_2"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = player:WaitForChild("PlayerGui")
+-- Bảo vệ Gui không bị xóa khi hồi sinh bừa bãi
+pcall(function() ScreenGui.Parent = player:WaitForChild("PlayerGui", 10) or player.PlayerGui end)
 
 ----------------------------------------------------------------
 -- HỆ THỐNG THÔNG BÁO THÀNH TỰU (ACHIEVEMENT NOTIFICATION)
 ----------------------------------------------------------------
 local function ShowAchievementNotify(title, desc)
-	pcall(function()
-		local NotifyFrame = Instance.new("Frame")
-		NotifyFrame.Size = UDim2.new(0, 260, 0, 65)
-		NotifyFrame.Position = UDim2.new(1, 30, 1, -85)
-		NotifyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-		NotifyFrame.BackgroundTransparency = 0.15
-		NotifyFrame.BorderSizePixel = 0
-		NotifyFrame.Parent = ScreenGui
-		Instance.new("UICorner", NotifyFrame).CornerRadius = UDim.new(0, 8)
+	task.spawn(function()
+		pcall(function()
+			local NotifyFrame = Instance.new("Frame")
+			NotifyFrame.Size = UDim2.new(0, 260, 0, 65)
+			NotifyFrame.Position = UDim2.new(1, 30, 1, -85)
+			NotifyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+			NotifyFrame.BackgroundTransparency = 0.15
+			NotifyFrame.BorderSizePixel = 0
+			NotifyFrame.Parent = ScreenGui
+			Instance.new("UICorner", NotifyFrame).CornerRadius = UDim.new(0, 8)
 
-		local SideLine = Instance.new("Frame")
-		SideLine.Size = UDim2.new(0, 4, 1, 0)
-		SideLine.BackgroundColor3 = ThemeColor
-		SideLine.BorderSizePixel = 0
-		SideLine.Parent = NotifyFrame
-		Instance.new("UICorner", SideLine).CornerRadius = UDim.new(0, 8)
-		ObjectsToTheme[SideLine] = "BackgroundColor3"
+			local SideLine = Instance.new("Frame")
+			SideLine.Size = UDim2.new(0, 4, 1, 0)
+			SideLine.BackgroundColor3 = ThemeColor
+			SideLine.BorderSizePixel = 0
+			SideLine.Parent = NotifyFrame
+			Instance.new("UICorner", SideLine).CornerRadius = UDim.new(0, 8)
+			ObjectsToTheme[SideLine] = "BackgroundColor3"
 
-		local IconBox = Instance.new("Frame")
-		IconBox.Size = UDim2.new(0, 35, 0, 35)
-		IconBox.Position = UDim2.new(0, 15, 0.5, -17)
-		IconBox.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-		IconBox.BorderSizePixel = 0
-		IconBox.Parent = NotifyFrame
-		Instance.new("UICorner", IconBox).CornerRadius = UDim.new(0, 18)
+			local IconBox = Instance.new("Frame")
+			IconBox.Size = UDim2.new(0, 35, 0, 35)
+			IconBox.Position = UDim2.new(0, 15, 0.5, -17)
+			IconBox.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+			IconBox.BorderSizePixel = 0
+			IconBox.Parent = NotifyFrame
+			Instance.new("UICorner", IconBox).CornerRadius = UDim.new(0, 18)
 
-		local IconText = Instance.new("TextLabel")
-		IconText.Size = UDim2.new(1, 0, 1, 0)
-		IconText.BackgroundTransparency = 1
-		IconText.Text = "🏆"
-		IconText.TextSize = 18
-		IconText.Parent = IconBox
+			local IconText = Instance.new("TextLabel")
+			IconText.Size = UDim2.new(1, 0, 1, 0)
+			IconText.BackgroundTransparency = 1
+			IconText.Text = "🏆"
+			IconText.TextSize = 18
+			IconText.Parent = IconBox
 
-		local TitleLabel = Instance.new("TextLabel")
-		TitleLabel.Size = UDim2.new(1, -70, 0, 20)
-		TitleLabel.Position = UDim2.new(0, 60, 0, 12)
-		TitleLabel.BackgroundTransparency = 1
-		TitleLabel.Text = title
-		TitleLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
-		TitleLabel.Font = Enum.Font.SourceSansBold
-		TitleLabel.TextSize = 14
-		TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-		TitleLabel.Parent = NotifyFrame
+			local TitleLabel = Instance.new("TextLabel")
+			TitleLabel.Size = UDim2.new(1, -70, 0, 20)
+			TitleLabel.Position = UDim2.new(0, 60, 0, 12)
+			TitleLabel.BackgroundTransparency = 1
+			TitleLabel.Text = title
+			TitleLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+			TitleLabel.Font = Enum.Font.SourceSansBold
+			TitleLabel.TextSize = 14
+			TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+			TitleLabel.Parent = NotifyFrame
 
-		local DescLabel = Instance.new("TextLabel")
-		DescLabel.Size = UDim2.new(1, -70, 0, 20)
-		DescLabel.Position = UDim2.new(0, 60, 0, 28)
-		DescLabel.BackgroundTransparency = 1
-		DescLabel.Text = desc
-		DescLabel.TextColor3 = Color3.fromRGB(220, 220, 225)
-		DescLabel.Font = Enum.Font.SourceSans
-		DescLabel.TextSize = 13
-		DescLabel.TextXAlignment = Enum.TextXAlignment.Left
-		DescLabel.Parent = NotifyFrame
+			local DescLabel = Instance.new("TextLabel")
+			DescLabel.Size = UDim2.new(1, -70, 0, 20)
+			DescLabel.Position = UDim2.new(0, 60, 0, 28)
+			DescLabel.BackgroundTransparency = 1
+			DescLabel.Text = desc
+			DescLabel.TextColor3 = Color3.fromRGB(220, 220, 225)
+			DescLabel.Font = Enum.Font.SourceSans
+			DescLabel.TextSize = 13
+			DescLabel.TextXAlignment = Enum.TextXAlignment.Left
+			DescLabel.Parent = NotifyFrame
 
-		NotifyFrame:TweenPosition(UDim2.new(1, -280, 1, -85), Enum.EasingDirection.Out, Enum.EasingStyle.Back, 0.5, true)
+			NotifyFrame:TweenPosition(UDim2.new(1, -280, 1, -85), Enum.EasingDirection.Out, Enum.EasingStyle.Back, 0.5, true)
 
-		task.delay(4, function()
-			if NotifyFrame and NotifyFrame.Parent then
-				local closeTween = TweenService:Create(NotifyFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-					Position = UDim2.new(1, 30, 1, -85),
-					BackgroundTransparency = 1
-				})
-				closeTween:Play()
-				closeTween.Completed:Connect(function() NotifyFrame:Destroy() end)
-			end
+			task.delay(4, function()
+				if NotifyFrame and NotifyFrame.Parent then
+					local closeTween = TweenService:Create(NotifyFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+						Position = UDim2.new(1, 30, 1, -85),
+						BackgroundTransparency = 1
+					})
+					closeTween:Play()
+					closeTween.Completed:Connect(function() NotifyFrame:Destroy() end)
+				end
+			end)
 		end)
 	end)
 end
 
--- Thông báo script đã kích hoạt ngầm thành công
-ShowAchievementNotify("Mở khóa Thành Tựu!", "NguyenDzHub v4.1 đã sẵn sàng.")
+ShowAchievementNotify("Mở khóa Thành Tựu!", "NguyenDzHub v4.2 chống kẹt boot đã sẵn sàng.")
 
 ----------------------------------------------------------------
 -- [2] CỬA SỔ CÂU HỎI BẤT BUỘC
@@ -256,7 +267,7 @@ TitleText.Parent = TopBar
 TitleText.Size = UDim2.new(1, -90, 1, 0)
 TitleText.Position = UDim2.new(0, 15, 0, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "NguyenDzHub : Nguyên Sigma Edition v4.1" 
+TitleText.Text = "NguyenDzHub : Nguyên Sigma Edition v4.2" 
 TitleText.TextColor3 = Color3.fromRGB(240, 240, 245)
 TitleText.Font = Enum.Font.SourceSansBold
 TitleText.TextSize = 15
@@ -555,14 +566,4 @@ local function CreateButtonRow(page, btnText, callback)
 	Btn.MouseButton1Click:Connect(callback)
 end
 
--- ==================== KHỞI TẠO CÁC TAB CHỨC NĂNG ====================
-local MainTab = CreateTab("Main Hacks")
-local StatusTab = CreateTab("Status/Configs")
-local UtilityTab = CreateTab("Utility")
-local InfoTab = CreateTab("Thông tin")
-
-Tabs["Main Hacks"].Visible = true
-TabButtons["Main Hacks"].BackgroundTransparency = 0.4
-TabButtons["Main Hacks"].TextColor3 = Color3.fromRGB(255, 255, 255)
-
--- ==================== TAB 1: MAIN HA
+-- ======

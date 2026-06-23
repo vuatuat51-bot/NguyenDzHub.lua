@@ -6,13 +6,27 @@ local Lighting = game:GetService("Lighting")
 local TeleportService = game:GetService("TeleportService")
 
 local player = Players.LocalPlayer
-local char = nil
-local humanoid = nil
+local char = player.Character
+local humanoid = char and char:FindFirstChildOfClass("Humanoid")
 
--- Tải nhân vật ngầm chạy song song
+-- Luồng cập nhật nhân vật ngầm ổn định
 task.spawn(function()
-	char = player.Character or player.CharacterAdded:Wait()
-	humanoid = char:WaitForChild("Humanoid", 5) or char:FindFirstChildOfClass("Humanoid")
+	while task.wait(1) do
+		pcall(function()
+			if not char or not char.Parent then
+				char = player.Character or player.CharacterAdded:Wait()
+				humanoid = char:WaitForChild("Humanoid", 3) or char:FindFirstChildOfClass("Humanoid")
+			end
+		end)
+	end
+end)
+
+player.CharacterAdded:Connect(function(newChar)
+	char = newChar
+	task.wait(0.5)
+	pcall(function()
+		humanoid = newChar:FindFirstChildOfClass("Humanoid")
+	end)
 end)
 
 -- ==================== HỆ THỐNG BIẾN TÍNH NĂNG ====================
@@ -21,30 +35,23 @@ local flying = false
 local infJump = false
 local FlySpeed = 50
 local CustomSpeed = 16
-local CustomJump = 50
 local MenuScale = 1.0 
 
 local flyBodyGyro = nil
 local flyBodyVelocity = nil
-
 local ThemeColor = Color3.fromRGB(255, 50, 50) 
 local ObjectsToTheme = {}
 
-player.CharacterAdded:Connect(function(newChar)
-	char = newChar
-	humanoid = newChar:WaitForChild("Humanoid", 5) or newChar:FindFirstChildOfClass("Humanoid")
-	flying = false; noclip = false
-	if flyBodyGyro then pcall(function() flyBodyGyro:Destroy() end) flyBodyGyro = nil end
-	if flyBodyVelocity then pcall(function() flyBodyVelocity:Destroy() end) flyBodyVelocity = nil end
-end)
-
 -- ==================== KHỞI TẠO GUI GỐC ====================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NguyenDzHub_v4_4"
+ScreenGui.Name = "NguyenDzHub_v4_6"
 ScreenGui.ResetOnSpawn = false
-pcall(function() ScreenGui.Parent = player:WaitForChild("PlayerGui", 5) or player.PlayerGui end)
 
--- Hàm kéo thả giao diện mượt chống bug click
+-- Ép GUI vào nơi hiển thị cao nhất để không bị chặn
+local playerGui = player:FindFirstChildOfClass("PlayerGui") or player:WaitForChild("PlayerGui", 5)
+if playerGui then ScreenGui.Parent = playerGui else ScreenGui.Parent = game:GetService("CoreGui") end
+
+-- Hàm kéo thả giao diện chống bug click
 local function MakeDraggable(gui)
 	local dragging, dragInput, dragStart, startPos
 	gui.InputBegan:Connect(function(input)
@@ -65,28 +72,28 @@ local function MakeDraggable(gui)
 end
 
 ----------------------------------------------------------------
--- [1] BẢNG HIỆU ỨNG CHỮ "NGUYÊN SIGMA ĐẸP TRAI" (TỰ BIẾN MẤT)
+-- [1] BẢNG THÀNH TỰU SIGMA (FIX CỨNG HIỂN THỊ CHÍNH GIỮA)
 ----------------------------------------------------------------
 local SigmaFrame = Instance.new("Frame")
 SigmaFrame.Parent = ScreenGui
-SigmaFrame.Size = UDim2.new(0, 360, 0, 90)
-SigmaFrame.Position = UDim2.new(0.5, -180, -0.2, 0) -- Xuất phát từ trên đỉnh màn hình rơi xuống
+SigmaFrame.Size = UDim2.new(0, 360, 0, 95)
+SigmaFrame.Position = UDim2.new(0.5, -180, 0.4, -47) -- Đặt chính giữa màn hình ngay lập tức!
 SigmaFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 SigmaFrame.BackgroundTransparency = 0.1
 SigmaFrame.BorderSizePixel = 0
 Instance.new("UICorner", SigmaFrame).CornerRadius = UDim.new(0, 10)
 
--- Viền phát sáng nhẹ cho chuẩn Sigma
+-- Viền vàng Sigma hoàng gia
 local UIStroke = Instance.new("UIStroke")
-UIStroke.Color = Color3.fromRGB(255, 215, 0) -- Màu vàng hoàng gia / gold
-UIStroke.Thickness = 2
+UIStroke.Color = Color3.fromRGB(255, 215, 0)
+UIStroke.Thickness = 2.5
 UIStroke.Parent = SigmaFrame
 
 local SigmaText = Instance.new("TextLabel")
 SigmaText.Parent = SigmaFrame
 SigmaText.Size = UDim2.new(1, 0, 1, 0)
 SigmaText.BackgroundTransparency = 1
-SigmaText.Text = "👑 NGUYÊN SIGMA ĐẸP TRAI NGẦU LÒI 👑"
+SigmaText.Text = "👑 THÀNH TỰU ĐẠT ĐƯỢC 👑\nNGUYÊN SIGMA ĐẸP TRAI NGẦU LÒI!"
 SigmaText.TextColor3 = Color3.fromRGB(255, 255, 255)
 SigmaText.Font = Enum.Font.SourceSansBold
 SigmaText.TextSize = 18
@@ -102,7 +109,7 @@ MainMenu.Position = UDim2.new(0.5, -280, 0.5, -180)
 MainMenu.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainMenu.BackgroundTransparency = 0.15 
 MainMenu.Active = true
-MainMenu.Visible = false -- Ban đầu ẩn đi để đợi bảng Sigma chạy xong
+MainMenu.Visible = false -- Ẩn đi để đợi bảng chữ biến mất
 Instance.new("UICorner", MainMenu).CornerRadius = UDim.new(0, 12)
 MakeDraggable(MainMenu)
 
@@ -122,7 +129,7 @@ TitleText.Parent = TopBar
 TitleText.Size = UDim2.new(1, -90, 1, 0)
 TitleText.Position = UDim2.new(0, 15, 0, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "NguyenDzHub : Nguyên Sigma Edition v4.4" 
+TitleText.Text = "NguyenDzHub : Nguyên Sigma Edition v4.6" 
 TitleText.TextColor3 = Color3.fromRGB(240, 240, 245)
 TitleText.Font = Enum.Font.SourceSansBold
 TitleText.TextSize = 15
@@ -219,8 +226,6 @@ local function CreateSectionTitle(page, titleText)
 	Label.TextXAlignment = Enum.TextXAlignment.Left
 	Label.Parent = page
 end
-
-local SyncUINoclip, SyncUIFly
 
 local function CreateToggleRow(page, featureText, defaultState, callback)
 	local Row = Instance.new("Frame")
@@ -385,7 +390,7 @@ local function CreateButtonRow(page, btnText, callback)
 	Btn.MouseButton1Click:Connect(callback)
 end
 
--- Tải các Tab chức năng cơ bản
+-- Khởi tạo các Tab cơ bản
 local MainTab = CreateTab("Main Hacks")
 local StatusTab = CreateTab("Status/Configs")
 local UtilityTab = CreateTab("Utility")
@@ -394,10 +399,9 @@ Tabs["Main Hacks"].Visible = true
 TabButtons["Main Hacks"].BackgroundTransparency = 0.4
 TabButtons["Main Hacks"].TextColor3 = Color3.fromRGB(255, 255, 255)
 
--- Thêm tính năng di chuyển cơ bản
 CreateSectionTitle(MainTab, "Hệ thống Di chuyển")
-SyncUINoclip = CreateToggleRow(MainTab, "Xuyên tường (Noclip)", false, function(state) noclip = state end)
-SyncUIFly = CreateToggleRow(MainTab, "Bay tự do (WASD)", false, function(state)
+CreateToggleRow(MainTab, "Xuyên tường (Noclip)", false, function(state) noclip = state end)
+CreateToggleRow(MainTab, "Bay tự do (WASD)", false, function(state)
 	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
 	flying = state; local hrp = char.HumanoidRootPart
 	if flying then
@@ -426,7 +430,7 @@ end)
 CreateButtonRow(UtilityTab, "Vào lại game phòng cũ (Rejoin)", function() TeleportService:Teleport(game.PlaceId, player) end)
 
 ----------------------------------------------------------------
--- CÁC NÚT PHỤ KHI THU NHỎ MENU CHÍNH
+-- NÚT PHỤ KHI THU NHỎ MENU CHÍNH
 ----------------------------------------------------------------
 local OpenMenuBtn = Instance.new("TextButton")
 OpenMenuBtn.Parent = ScreenGui
@@ -442,32 +446,24 @@ Instance.new("UICorner", OpenMenuBtn).CornerRadius = UDim.new(0, 23)
 ObjectsToTheme[OpenMenuBtn] = "TextColor3"
 MakeDraggable(OpenMenuBtn)
 
--- ==================== HỆ THỐNG TIMELINE CHẠY ĐỘC LẬP (AUTO BANNER) ====================
+-- ==================== LUỒNG THỜI GIAN KHÔNG SỬ DỤNG TWEEN TỌA ĐỘ ====================
 task.spawn(function()
-	-- Bước 1: Cho bảng chữ Sigma rơi xuống mượt mà từ trên đỉnh màn hình
-	SigmaFrame:TweenPosition(UDim2.new(0.5, -180, 0.15, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Back, 0.6, true)
+	-- Bảng thành tựu đã xuất hiện cố định ở giữa màn hình ngay từ đầu
+	task.wait(2.5) -- Giữ nguyên trên màn hình 2.5 giây để xem
 	
-	-- Bước 2: Treo bảng chữ trên màn hình 2.5 giây cho rực rỡ
-	task.wait(2.5)
+	-- Làm mờ dần độ trong suốt (An toàn tuyệt đối trên mọi Executor)
+	for i = 0.1, 1, 0.1 do
+		SigmaFrame.BackgroundTransparency = i
+		SigmaText.TextTransparency = i
+		UIStroke.Transparency = i
+		task.wait(0.03)
+	end
 	
-	-- Bước 3: Làm mờ bảng chữ dần dần rồi xóa hẳn
-	local fadeTween = TweenService:Create(SigmaFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-		Position = UDim2.new(0.5, -180, -0.2, 0),
-		BackgroundTransparency = 1
-	})
-	fadeTween:Play()
-	fadeTween.Completed:Connect(function() 
-		SigmaFrame:Destroy() 
-	end)
-	
-	-- Bước 4: Tự động bật mở Menu chính lên ngay lập tức!
-	task.wait(0.1)
-	pcall(function()
-		MainMenu.Visible = true
-	end)
+	pcall(function() SigmaFrame:Destroy() end) -- Xóa bảng
+	task.wait(0.05)
+	pcall(function() MainMenu.Visible = true end) -- Mở Menu chính
 end)
 
--- Các nút điều hướng ẩn hiện menu sau đó
 MinimizeBtn.MouseButton1Click:Connect(function()
 	MainMenu.Visible = false
 	OpenMenuBtn.Visible = true
@@ -486,7 +482,7 @@ CloseBtn.MouseButton1Click:Connect(function()
 	ScreenGui:Destroy()
 end)
 
--- Vòng lặp core xử lý vật lý hack
+-- Vòng lặp Core xử lý vật lý hack
 UIS.JumpRequest:Connect(function() if infJump and humanoid then pcall(function() humanoid:ChangeState("Jumping") end) end end)
 RunService.Stepped:Connect(function()
 	if noclip and char then
@@ -503,4 +499,11 @@ RunService.RenderStepped:Connect(function()
 		pcall(function()
 			local moveDir = Vector3.new(0, 0, 0)
 			if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
-			if UIS:IsKeyDown(Enum.KeyCo
+			if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
+			if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector end
+			if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
+			flyBodyGyro.cframe = cam.CFrame
+			if moveDir.Magnitude > 0 then flyBodyVelocity.velocity = moveDir.Unit * FlySpeed else flyBodyVelocity.velocity = Vector3.new(0, 0.1, 0) end
+		end)
+	end
+end)

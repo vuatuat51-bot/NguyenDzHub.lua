@@ -9,7 +9,7 @@ local player = Players.LocalPlayer
 local char = player.Character
 local humanoid = char and char:FindFirstChildOfClass("Humanoid")
 
--- Luồng cập nhật nhân vật ngầm ổn định
+-- Tự động cập nhật nhân vật ngầm chống lỗi gán biến
 task.spawn(function()
 	while task.wait(1) do
 		pcall(function()
@@ -21,15 +21,7 @@ task.spawn(function()
 	end
 end)
 
-player.CharacterAdded:Connect(function(newChar)
-	char = newChar
-	task.wait(0.5)
-	pcall(function()
-		humanoid = newChar:FindFirstChildOfClass("Humanoid")
-	end)
-end)
-
--- ==================== HỆ THỐNG BIẾN TÍNH NĂNG (FULL) ====================
+-- ==================== HỆ THỐNG BIẾN TÍNH NĂNG ĐẦY ĐỦ ====================
 local noclip = false
 local flying = false
 local infJump = false
@@ -47,19 +39,29 @@ local MenuScale = 1.0
 
 local flyBodyGyro = nil
 local flyBodyVelocity = nil
-local ThemeColor = Color3.fromRGB(255, 50, 50) 
-local ObjectsToTheme = {}
+local ThemeColor = Color3.fromRGB(255, 60, 60) 
 
 local originalMaterials = {}
 local originalLighting = { GlobalShadows = Lighting.GlobalShadows, Ambient = Lighting.Ambient }
 
--- ==================== KHỞI TẠO GUI GỐC ====================
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NguyenDzHub_v4_7"
-ScreenGui.ResetOnSpawn = false
+-- XÓA BỎ BẢN CŨ NẾU CÒN TRONG BỘ NHỚ TRÁNH XUNG ĐỘT
+for _, oldGui in ipairs(game:GetService("CoreGui"):GetChildren()) do
+	if oldGui.Name:match("NguyenDzHub") then pcall(function() oldGui:Destroy() end) end
+end
+local oldPlayerGui = player:FindFirstChildOfClass("PlayerGui")
+if oldPlayerGui then
+	for _, oldGui in ipairs(oldPlayerGui:GetChildren()) do
+		if oldGui.Name:match("NguyenDzHub") then pcall(function() oldGui:Destroy() end) end
+	end
+end
 
-local playerGui = player:FindFirstChildOfClass("PlayerGui") or player:WaitForChild("PlayerGui", 5)
-if playerGui then ScreenGui.Parent = playerGui else ScreenGui.Parent = game:GetService("CoreGui") end
+-- ==================== KHỞI TẠO GUI ĐỊNH DANH MỚI (V4.8) ====================
+local NewScreenGui = Instance.new("ScreenGui")
+NewScreenGui.Name = "NguyenDzHub_v4_8_ForceClearCache"
+NewScreenGui.ResetOnSpawn = false
+NewScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+if oldPlayerGui then NewScreenGui.Parent = oldPlayerGui else NewScreenGui.Parent = game:GetService("CoreGui") end
 
 local function MakeDraggable(gui)
 	local dragging, dragInput, dragStart, startPos
@@ -81,14 +83,13 @@ local function MakeDraggable(gui)
 end
 
 ----------------------------------------------------------------
--- [1] BẢNG THÀNH TỰU SIGMA (GIỮ NGUYÊN FIX TÂM)
+-- [1] BANNER THÀNH TỰU SIGMA (TỰ ĐỘNG BIẾN MẤT RỒI HIỆN MENU)
 ----------------------------------------------------------------
 local SigmaFrame = Instance.new("Frame")
-SigmaFrame.Parent = ScreenGui
+SigmaFrame.Parent = NewScreenGui
 SigmaFrame.Size = UDim2.new(0, 360, 0, 95)
 SigmaFrame.Position = UDim2.new(0.5, -180, 0.4, -47)
 SigmaFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-SigmaFrame.BackgroundTransparency = 0.1
 SigmaFrame.BorderSizePixel = 0
 Instance.new("UICorner", SigmaFrame).CornerRadius = UDim.new(0, 10)
 
@@ -108,24 +109,17 @@ SigmaText.TextSize = 18
 SigmaText.TextWrapped = true
 
 ----------------------------------------------------------------
--- [2] MENU CHÍNH
+-- [2] KHUNG MENU CHÍNH VỚI LAYOUT MỚI
 ----------------------------------------------------------------
 local MainMenu = Instance.new("Frame")
-MainMenu.Parent = ScreenGui
-MainMenu.Size = UDim2.new(0, 560, 0, 360)
-MainMenu.Position = UDim2.new(0.5, -280, 0.5, -180)
-MainMenu.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
-MainMenu.BackgroundTransparency = 0.15 
+MainMenu.Parent = NewScreenGui
+MainMenu.Size = UDim2.new(0, 560, 0, 370)
+MainMenu.Position = UDim2.new(0.5, -280, 0.5, -185)
+MainMenu.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 MainMenu.Active = true
 MainMenu.Visible = false 
 Instance.new("UICorner", MainMenu).CornerRadius = UDim.new(0, 12)
 MakeDraggable(MainMenu)
-
-local BaseMenuSize = Vector2.new(560, 360)
-local function ChangeMenuScale(scaleValue)
-	MenuScale = math.clamp(scaleValue, 0.6, 1.5)
-	MainMenu.Size = UDim2.new(0, BaseMenuSize.X * MenuScale, 0, BaseMenuSize.Y * MenuScale)
-end
 
 local TopBar = Instance.new("Frame")
 TopBar.Parent = MainMenu
@@ -137,8 +131,8 @@ TitleText.Parent = TopBar
 TitleText.Size = UDim2.new(1, -90, 1, 0)
 TitleText.Position = UDim2.new(0, 15, 0, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "NguyenDzHub : Nguyên Sigma Edition v4.7" 
-TitleText.TextColor3 = Color3.fromRGB(240, 240, 245)
+TitleText.Text = "NguyenDzHub | Nguyên Sigma Version v4.8" 
+TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleText.Font = Enum.Font.SourceSansBold
 TitleText.TextSize = 15
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
@@ -163,26 +157,29 @@ CloseBtn.Text = "X"
 CloseBtn.Font = Enum.Font.SourceSansBold
 CloseBtn.TextSize = 16
 
+-- Thanh bên chứa TAB điều hướng
 local Sidebar = Instance.new("ScrollingFrame")
 Sidebar.Parent = MainMenu
-Sidebar.Size = UDim2.new(0, 160, 1, -50)
+Sidebar.Size = UDim2.new(0, 150, 1, -55)
 Sidebar.Position = UDim2.new(0, 10, 0, 45)
 Sidebar.BackgroundTransparency = 1
-Sidebar.CanvasSize = UDim2.new(0, 0, 0, 400)
+Sidebar.CanvasSize = UDim2.new(0, 0, 0, 300)
 Sidebar.ScrollBarThickness = 0
-Instance.new("UIListLayout", Sidebar).Padding = UDim.new(0, 5)
+local SideList = Instance.new("UIListLayout", Sidebar)
+SideList.Padding = UDim.new(0, 5)
 
 local Divider = Instance.new("Frame")
 Divider.Parent = MainMenu
 Divider.Size = UDim2.new(0, 1, 1, -60)
-Divider.Position = UDim2.new(0, 175, 0, 50)
-Divider.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+Divider.Position = UDim2.new(0, 165, 0, 50)
+Divider.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
 Divider.BorderSizePixel = 0
 
+-- Vùng chứa nội dung chức năng bên phải
 local ContentContainer = Instance.new("Frame")
 ContentContainer.Parent = MainMenu
-ContentContainer.Size = UDim2.new(1, -190, 1, -55)
-ContentContainer.Position = UDim2.new(0, 185, 0, 45)
+ContentContainer.Size = UDim2.new(1, -180, 1, -55)
+ContentContainer.Position = UDim2.new(0, 175, 0, 45)
 ContentContainer.BackgroundTransparency = 1
 
 local Tabs = {}
@@ -192,18 +189,21 @@ local function CreateTab(tabName)
 	local TabPage = Instance.new("ScrollingFrame")
 	TabPage.Size = UDim2.new(1, 0, 1, 0)
 	TabPage.BackgroundTransparency = 1
-	TabPage.CanvasSize = UDim2.new(0, 0, 0, 600)
-	TabPage.ScrollBarThickness = 2
+	TabPage.CanvasSize = UDim2.new(0, 0, 0, 550)
+	TabPage.ScrollBarThickness = 4
+	TabPage.ScrollBarImageColor3 = ThemeColor
 	TabPage.Visible = false
 	TabPage.Parent = ContentContainer
-	Instance.new("UIListLayout", TabPage).Padding = UDim.new(0, 8)
+	
+	local TabList = Instance.new("UIListLayout", TabPage)
+	TabList.Padding = UDim.new(0, 6)
 	
 	local TabBtn = Instance.new("TextButton")
-	TabBtn.Size = UDim2.new(1, -5, 0, 35)
+	TabBtn.Size = UDim2.new(1, 0, 0, 35)
 	TabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 	TabBtn.BackgroundTransparency = 1
-	TabBtn.TextColor3 = Color3.fromRGB(160, 160, 165)
-	TabBtn.Text = "  " .. tabName
+	TabBtn.TextColor3 = Color3.fromRGB(150, 150, 155)
+	TabBtn.Text = " ⚡ " .. tabName
 	TabBtn.Font = Enum.Font.SourceSansBold
 	TabBtn.TextSize = 14
 	TabBtn.TextXAlignment = Enum.TextXAlignment.Left
@@ -215,9 +215,9 @@ local function CreateTab(tabName)
 
 	TabBtn.MouseButton1Click:Connect(function()
 		for _, page in pairs(Tabs) do page.Visible = false end
-		for _, btn in pairs(TabButtons) do btn.BackgroundTransparency = 1; btn.TextColor3 = Color3.fromRGB(160, 160, 165) end
+		for _, btn in pairs(TabButtons) do btn.BackgroundTransparency = 1; btn.TextColor3 = Color3.fromRGB(150, 150, 155) end
 		TabPage.Visible = true
-		TabBtn.BackgroundTransparency = 0.4
+		TabBtn.BackgroundTransparency = 0.5
 		TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 	end)
 	return TabPage
@@ -227,149 +227,105 @@ local function CreateSectionTitle(page, titleText)
 	local Label = Instance.new("TextLabel")
 	Label.Size = UDim2.new(1, 0, 0, 25)
 	Label.BackgroundTransparency = 1
-	Label.Text = titleText
-	Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Label.Text = "─── " .. titleText .. " ───"
+	Label.TextColor3 = ThemeColor
 	Label.Font = Enum.Font.SourceSansBold
-	Label.TextSize = 15
+	Label.TextSize = 14
 	Label.TextXAlignment = Enum.TextXAlignment.Left
 	Label.Parent = page
 end
 
 local function CreateToggleRow(page, featureText, defaultState, callback)
 	local Row = Instance.new("Frame")
-	Row.Size = UDim2.new(1, -10, 0, 40)
-	Row.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-	Row.BackgroundTransparency = 0.3
+	Row.Size = UDim2.new(1, -10, 0, 38)
+	Row.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
 	Row.Parent = page
 	Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 6)
 
 	local Label = Instance.new("TextLabel")
 	Label.Size = UDim2.new(0.7, 0, 1, 0)
-	Label.Position = UDim2.new(0, 12, 0, 0)
+	Label.Position = UDim2.new(0, 10, 0, 0)
 	Label.BackgroundTransparency = 1
 	Label.Text = featureText
-	Label.TextColor3 = Color3.fromRGB(210, 210, 215)
+	Label.TextColor3 = Color3.fromRGB(220, 220, 225)
 	Label.Font = Enum.Font.SourceSans
 	Label.TextSize = 14
 	Label.TextXAlignment = Enum.TextXAlignment.Left
 	Label.Parent = Row
 
 	local ToggleBtn = Instance.new("TextButton")
-	ToggleBtn.Size = UDim2.new(0, 45, 0, 22)
-	ToggleBtn.Position = UDim2.new(1, -55, 0, 9)
+	ToggleBtn.Size = UDim2.new(0, 42, 0, 20)
+	ToggleBtn.Position = UDim2.new(1, -52, 0, 9)
 	ToggleBtn.BackgroundColor3 = defaultState and ThemeColor or Color3.fromRGB(50, 50, 55)
 	ToggleBtn.Text = ""
 	ToggleBtn.Parent = Row
-	Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 11)
-	if defaultState then ObjectsToTheme[ToggleBtn] = "BackgroundColor3" end
+	Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 10)
 
 	local StateCircle = Instance.new("Frame")
-	StateCircle.Size = UDim2.new(0, 16, 0, 16)
-	StateCircle.Position = defaultState and UDim2.new(1, -20, 0, 3) or UDim2.new(0, 4, 0, 3)
+	StateCircle.Size = UDim2.new(0, 14, 0, 14)
+	StateCircle.Position = defaultState and UDim2.new(1, -18, 0, 3) or UDim2.new(0, 4, 0, 3)
 	StateCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	StateCircle.Parent = ToggleBtn
-	Instance.new("UICorner", StateCircle).CornerRadius = UDim.new(0, 8)
+	Instance.new("UICorner", StateCircle).CornerRadius = UDim.new(0, 7)
 
 	local active = defaultState
 	local function updateVisuals()
 		if active then
-			ObjectsToTheme[ToggleBtn] = "BackgroundColor3"
-			TweenService:Create(ToggleBtn, TweenInfo.new(0.15), {BackgroundColor3 = ThemeColor}):Play()
-			TweenService:Create(StateCircle, TweenInfo.new(0.15), {Position = UDim2.new(1, -20, 0, 3)}):Play()
+			TweenService:Create(ToggleBtn, TweenInfo.new(0.12), {BackgroundColor3 = ThemeColor}):Play()
+			TweenService:Create(StateCircle, TweenInfo.new(0.12), {Position = UDim2.new(1, -18, 0, 3)}):Play()
 		else
-			ObjectsToTheme[ToggleBtn] = nil
-			TweenService:Create(ToggleBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
-			TweenService:Create(StateCircle, TweenInfo.new(0.15), {Position = UDim2.new(0, 4, 0, 3)}):Play()
+			TweenService:Create(ToggleBtn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
+			TweenService:Create(StateCircle, TweenInfo.new(0.12), {Position = UDim2.new(0, 4, 0, 3)}):Play()
 		end
 	end
 
-	ToggleBtn.MouseButton1Click:Connect(function()
-		active = not active
-		callback(active)
-		updateVisuals()
-	end)
-	return function(forceState) active = forceState; callback(active); updateVisuals() end
-end
-
-local function CreateInputRow(page, featureText, defaultText, callback)
-	local Row = Instance.new("Frame")
-	Row.Size = UDim2.new(1, -10, 0, 40)
-	Row.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-	Row.BackgroundTransparency = 0.3
-	Row.Parent = page
-	Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 6)
-
-	local Label = Instance.new("TextLabel")
-	Label.Size = UDim2.new(0.5, 0, 1, 0)
-	Label.Position = UDim2.new(0, 12, 0, 0)
-	Label.BackgroundTransparency = 1
-	Label.Text = featureText
-	Label.TextColor3 = Color3.fromRGB(210, 210, 215)
-	Label.Font = Enum.Font.SourceSans
-	Label.TextSize = 14
-	Label.TextXAlignment = Enum.TextXAlignment.Left
-	Label.Parent = Row
-
-	local BoxInput = Instance.new("TextBox")
-	BoxInput.Size = UDim2.new(0, 100, 0, 26)
-	BoxInput.Position = UDim2.new(1, -112, 0, 7)
-	BoxInput.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-	BoxInput.BorderSizePixel = 0
-	BoxInput.TextColor3 = Color3.fromRGB(0, 255, 200)
-	BoxInput.Text = defaultText
-	BoxInput.Font = Enum.Font.SourceSansBold
-	BoxInput.TextSize = 14
-	BoxInput.Parent = Row
-	Instance.new("UICorner", BoxInput).CornerRadius = UDim.new(0, 4)
-	BoxInput.FocusLost:Connect(function() callback(BoxInput.Text) end)
+	ToggleBtn.MouseButton1Click:Connect(function() active = not active; callback(active); updateVisuals() end)
 end
 
 local function CreateSliderRow(page, featureText, min, max, default, callback)
 	local Row = Instance.new("Frame")
-	Row.Size = UDim2.new(1, -10, 0, 45)
-	Row.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-	Row.BackgroundTransparency = 0.3
+	Row.Size = UDim2.new(1, -10, 0, 42)
+	Row.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
 	Row.Parent = page
 	Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 6)
 
 	local Label = Instance.new("TextLabel")
-	Label.Size = UDim2.new(0.4, 0, 1, 0)
-	Label.Position = UDim2.new(0, 12, 0, 0)
+	Label.Size = UDim2.new(0.45, 0, 1, 0)
+	Label.Position = UDim2.new(0, 10, 0, 0)
 	Label.BackgroundTransparency = 1
-	Label.Text = featureText .. " (" .. string.format("%.1f", default) .. ")"
-	Label.TextColor3 = Color3.fromRGB(210, 210, 215)
+	Label.Text = featureText .. ": " .. string.format("%d", default)
+	Label.TextColor3 = Color3.fromRGB(220, 220, 225)
 	Label.Font = Enum.Font.SourceSans
 	Label.TextSize = 14
 	Label.TextXAlignment = Enum.TextXAlignment.Left
 	Label.Parent = Row
 
 	local SliderContainer = Instance.new("Frame")
-	SliderContainer.Size = UDim2.new(0, 120, 0, 6)
-	SliderContainer.Position = UDim2.new(1, -140, 0, 20)
-	SliderContainer.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+	SliderContainer.Size = UDim2.new(0, 110, 0, 6)
+	SliderContainer.Position = UDim2.new(1, -125, 0, 18)
+	SliderContainer.BackgroundColor3 = Color3.fromRGB(55, 55, 60)
 	SliderContainer.Parent = Row
 
 	local SliderFill = Instance.new("Frame")
 	SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
 	SliderFill.BackgroundColor3 = ThemeColor
 	SliderFill.Parent = SliderContainer
-	ObjectsToTheme[SliderFill] = "BackgroundColor3"
 
 	local SliderButton = Instance.new("TextButton")
-	SliderButton.Size = UDim2.new(0, 14, 0, 14)
-	SliderButton.Position = UDim2.new((default - min) / (max - min), -7, 0, -4)
+	SliderButton.Size = UDim2.new(0, 12, 0, 12)
+	SliderButton.Position = UDim2.new((default - min) / (max - min), -6, 0, -3)
 	SliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	SliderButton.Text = ""
 	SliderButton.Parent = SliderContainer
-	Instance.new("UICorner", SliderButton).CornerRadius = UDim.new(0, 7)
+	Instance.new("UICorner", SliderButton).CornerRadius = UDim.new(0, 6)
 
 	local isSliding = false
 	local function UpdateSlider(inputPosition)
 		local percentage = math.clamp((inputPosition.X - SliderContainer.AbsolutePosition.X) / SliderContainer.AbsoluteSize.X, 0, 1)
 		SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
-		SliderButton.Position = UDim2.new(percentage, -7, 0, -4)
+		SliderButton.Position = UDim2.new(percentage, -6, 0, -3)
 		local realValue = min + (percentage * (max - min))
-		Label.Text = featureText .. " (" .. string.format("%.1f", realValue) .. ")"
+		Label.Text = featureText .. ": " .. string.format("%d", realValue)
 		callback(realValue)
 	end
 	SliderButton.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then isSliding = true end end)
@@ -377,18 +333,49 @@ local function CreateSliderRow(page, featureText, min, max, default, callback)
 	UIS.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then isSliding = false end end)
 end
 
+local function CreateInputRow(page, featureText, defaultText, callback)
+	local Row = Instance.new("Frame")
+	Row.Size = UDim2.new(1, -10, 0, 38)
+	Row.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+	Row.Parent = page
+	Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 6)
+
+	local Label = Instance.new("TextLabel")
+	Label.Size = UDim2.new(0.5, 0, 1, 0)
+	Label.Position = UDim2.new(0, 10, 0, 0)
+	Label.BackgroundTransparency = 1
+	Label.Text = featureText
+	Label.TextColor3 = Color3.fromRGB(220, 220, 225)
+	Label.Font = Enum.Font.SourceSans
+	Label.TextSize = 14
+	Label.TextXAlignment = Enum.TextXAlignment.Left
+	Label.Parent = Row
+
+	local BoxInput = Instance.new("TextBox")
+	BoxInput.Size = UDim2.new(0, 90, 0, 24)
+	BoxInput.Position = UDim2.new(1, -100, 0, 7)
+	BoxInput.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+	BoxInput.BorderSizePixel = 0
+	BoxInput.TextColor3 = Color3.fromRGB(0, 255, 180)
+	BoxInput.Text = defaultText
+	BoxInput.Font = Enum.Font.SourceSansBold
+	BoxInput.TextSize = 13
+	BoxInput.Parent = Row
+	Instance.new("UICorner", BoxInput).CornerRadius = UDim.new(0, 4)
+	BoxInput.FocusLost:Connect(function() callback(BoxInput.Text) end)
+end
+
 local function CreateButtonRow(page, btnText, callback)
 	local Row = Instance.new("Frame")
-	Row.Size = UDim2.new(1, -10, 0, 45)
-	Row.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-	Row.BackgroundTransparency = 0.3
+	Row.Size = UDim2.new(1, -10, 0, 42)
+	Row.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
 	Row.Parent = page
 	Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 6)
 
 	local Btn = Instance.new("TextButton")
-	Btn.Size = UDim2.new(1, -20, 0, 33)
-	Btn.Position = UDim2.new(0, 10, 0, 6)
-	Btn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+	Btn.Size = UDim2.new(1, -16, 0, 30)
+	Btn.Position = UDim2.new(0, 8, 0, 6)
+	Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
 	Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 	Btn.Text = btnText
 	Btn.Font = Enum.Font.SourceSansBold
@@ -398,20 +385,23 @@ local function CreateButtonRow(page, btnText, callback)
 	Btn.MouseButton1Click:Connect(callback)
 end
 
--- Tạo 4 Tab chính đầy đủ
+-- DỰNG LẠI TOÀN BỘ CÁC TÁP HOÀN CHỈNH
 local MainTab = CreateTab("Main Hacks")
 local VisualsTab = CreateTab("Visuals / ESP")
-local StatusTab = CreateTab("Configs")
 local UtilityTab = CreateTab("Utility")
+local StatusTab = CreateTab("Configs")
 
+-- Force kích hoạt hiển thị Tab đầu tiên ngay khi mở
 Tabs["Main Hacks"].Visible = true
-TabButtons["Main Hacks"].BackgroundTransparency = 0.4
+TabButtons["Main Hacks"].BackgroundTransparency = 0.5
 TabButtons["Main Hacks"].TextColor3 = Color3.fromRGB(255, 255, 255)
 
--- ==================== CÀI ĐẶT TAB [MAIN HACKS] ====================
-CreateSectionTitle(MainTab, "Hệ thống Di chuyển")
+-- ==================== TOÀN BỘ CHỨC NĂNG VIP CỦA CÁC TAB ====================
+
+-- [TAB: MAIN HACKS]
+CreateSectionTitle(MainTab, "Di chuyển nâng cao")
 CreateToggleRow(MainTab, "Xuyên tường (Noclip)", false, function(state) noclip = state end)
-CreateToggleRow(MainTab, "Bay tự do (WASD)", false, function(state)
+CreateToggleRow(MainTab, "Bay tự do (WASD Mode)", false, function(state)
 	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
 	flying = state; local hrp = char.HumanoidRootPart
 	if flying then
@@ -428,70 +418,49 @@ CreateToggleRow(MainTab, "Bay tự do (WASD)", false, function(state)
 		if humanoid then humanoid.PlatformStand = false end
 	end
 end)
-CreateToggleRow(MainTab, "Nhảy vô hạn (Infinite Jump)", false, function(state) infJump = state end)
+CreateToggleRow(MainTab, "Nhảy trên không (Inf Jump)", false, function(state) infJump = state end)
 
-CreateSectionTitle(MainTab, "Thông số Cơ thể")
-CreateSliderRow(MainTab, "Tốc độ chạy bộ", 16, 250, 16, function(value)
-	CustomSpeed = value
-	if humanoid then pcall(function() humanoid.WalkSpeed = CustomSpeed end) end
-end)
-CreateSliderRow(MainTab, "Lực nhảy (JumpPower)", 50, 300, 50, function(value)
-	CustomJump = value
-	if humanoid then pcall(function() humanoid.JumpPower = CustomJump; humanoid.UseJumpPower = true end) end
-end)
+CreateSectionTitle(MainTab, "Sửa đổi vật lý")
+CreateSliderRow(MainTab, "Tốc độ di chuyển", 16, 200, 16, function(v) CustomSpeed = v end)
+CreateSliderRow(MainTab, "Độ cao bước nhảy", 50, 250, 50, function(v) CustomJump = v; if humanoid then humanoid.JumpPower = v; humanoid.UseJumpPower = true end end)
 
--- ==================== CÀI ĐẶT TAB [VISUALS / ESP] ====================
-CreateSectionTitle(VisualsTab, "Nhìn xuyên tường (ESP)")
-CreateToggleRow(VisualsTab, "ESP Người chơi (Players)", false, function(state) espEnabled = state end)
-CreateToggleRow(VisualsTab, "ESP Quái / Kẻ địch (NPCs)", false, function(state) npcEspEnabled = state end)
-CreateToggleRow(VisualsTab, "ESP Vật phẩm (Items)", false, function(state) itemEspEnabled = state end)
-
-CreateSectionTitle(VisualsTab, "Hiệu ứng Môi trường")
-CreateToggleRow(VisualsTab, "Bật sáng đêm (Fullbright)", false, function(state)
+-- [TAB: VISUALS / ESP]
+CreateSectionTitle(VisualsTab, "Hệ thống Ra-đa ESP")
+CreateToggleRow(VisualsTab, "Xuyên tường Người chơi", false, function(state) espEnabled = state end)
+CreateToggleRow(VisualsTab, "Xuyên tường Quái / Boss", false, function(state) npcEspEnabled = state end)
+CreateToggleRow(VisualsTab, "Xuyên tường Vật phẩm rơi", false, function(state) itemEspEnabled = state end)
+CreateSectionTitle(VisualsTab, "Tầm nhìn")
+CreateToggleRow(VisualsTab, "Bật sáng rực bản đồ", false, function(state)
 	fullbright = state
-	if fullbright then
-		Lighting.Ambient = Color3.fromRGB(255, 255, 255)
-		Lighting.GlobalShadows = false
-	else
-		Lighting.Ambient = originalLighting.Ambient
-		Lighting.GlobalShadows = originalLighting.GlobalShadows
-	end
+	if fullbright then Lighting.Ambient = Color3.fromRGB(255, 255, 255) Lighting.GlobalShadows = false
+	else Lighting.Ambient = originalLighting.Ambient Lighting.GlobalShadows = originalLighting.GlobalShadows end
 end)
 
--- ==================== CÀI ĐẶT TAB [CONFIGS] ====================
-CreateSectionTitle(StatusTab, "Cấu hình Giao diện")
-CreateSliderRow(StatusTab, "Kích thước Menu", 0.6, 1.5, 1.0, function(value) ChangeMenuScale(value) end)
-CreateInputRow(StatusTab, "Tốc độ Bay tự do:", tostring(FlySpeed), function(text)
-	local num = tonumber(text)
-	if num then FlySpeed = num end
-end)
-
--- ==================== CÀI ĐẶT TAB [UTILITY] ====================
-CreateSectionTitle(UtilityTab, "Hỗ trợ Chiến đấu & Tối ưu")
-CreateToggleRow(UtilityTab, "Chống choáng / Bị đóng băng", false, function(state) antiStun = state end)
-CreateToggleRow(UtilityTab, "Chế độ Giảm lag (Fix Lag)", false, function(state)
+-- [TAB: UTILITY]
+CreateSectionTitle(UtilityTab, "Hỗ trợ nhân vật")
+CreateToggleRow(UtilityTab, "Chống choáng / Anti Ragdoll", false, function(state) antiStun = state end)
+CreateToggleRow(UtilityTab, "Tối ưu đồ họa (Giảm Lag)", false, function(state)
 	fixLagEnabled = state
 	if fixLagEnabled then
 		for _, obj in ipairs(workspace:GetDescendants()) do
-			if obj:IsA("BasePart") and not obj:IsDescendantOf(player.Character) then
-				originalMaterials[obj] = obj.Material
-				obj.Material = Enum.Material.SmoothPlastic
-			end
+			if obj:IsA("BasePart") and not obj:IsDescendantOf(player.Character) then originalMaterials[obj] = obj.Material obj.Material = Enum.Material.SmoothPlastic end
 		end
 	else
-		for obj, mat in pairs(originalMaterials) do
-			if obj and obj.Parent then obj.Material = mat end
-		end
+		for obj, mat in pairs(originalMaterials) do if obj and obj.Parent then obj.Material = mat end end
 		table.clear(originalMaterials)
 	end
 end)
-CreateButtonRow(UtilityTab, "Vào lại game phòng cũ (Rejoin)", function() TeleportService:Teleport(game.PlaceId, player) end)
+CreateButtonRow(UtilityTab, "Rejoin (Vào lại máy chủ này)", function() TeleportService:Teleport(game.PlaceId, player) end)
+
+-- [TAB: CONFIGS]
+CreateSectionTitle(StatusTab, "Tùy biến")
+CreateInputRow(StatusTab, "Tốc độ bay tự do:", tostring(FlySpeed), function(t) local n = tonumber(t) if n then FlySpeed = n end end)
 
 ----------------------------------------------------------------
--- NÚT PHỤ KHI THU NHỎ
+-- NÚT BẤM PHỤ KHI THU NHỎ (ICON "N")
 ----------------------------------------------------------------
 local OpenMenuBtn = Instance.new("TextButton")
-OpenMenuBtn.Parent = ScreenGui
+OpenMenuBtn.Parent = NewScreenGui
 OpenMenuBtn.Size = UDim2.new(0, 46, 0, 46)
 OpenMenuBtn.Position = UDim2.new(0, 15, 0.4, 0)
 OpenMenuBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
@@ -501,114 +470,69 @@ OpenMenuBtn.Font = Enum.Font.SourceSansBold
 OpenMenuBtn.TextSize = 22
 OpenMenuBtn.Visible = false 
 Instance.new("UICorner", OpenMenuBtn).CornerRadius = UDim.new(0, 23)
-ObjectsToTheme[OpenMenuBtn] = "TextColor3"
 MakeDraggable(OpenMenuBtn)
 
--- ==================== LUỒNG THỜI GIAN HIỆN BANNER THÀNH TỰU ====================
+-- MỞ KHÓA LUỒNG BANNER TỰ ĐỘNG CHUYỂN MENU
 task.spawn(function()
-	task.wait(2.5) 
+	task.wait(2.2) 
 	for i = 0.1, 1, 0.1 do
-		SigmaFrame.BackgroundTransparency = i
-		SigmaText.TextTransparency = i
-		UIStroke.Transparency = i
-		task.wait(0.03)
+		SigmaFrame.BackgroundTransparency = i SigmaText.TextTransparency = i UIStroke.Transparency = i task.wait(0.02)
 	end
 	pcall(function() SigmaFrame:Destroy() end)
-	task.wait(0.05)
-	pcall(function() MainMenu.Visible = true end)
+	MainMenu.Visible = true
 end)
 
--- ==================== LOGIC XỬ LÝ ESP TOÀN DIỆN ====================
+-- ==================== VÒNG LẶP ENGINE LIÊN TỤC KHÓA LOGIC ====================
 local function ApplyESP(v, color, isItem)
 	if v == player or not v.Parent then return end
 	local root = v:FindFirstChild("HumanoidRootPart") or v:FindFirstChildWhichIsA("BasePart")
 	if not root then return end
-
 	if not root:FindFirstChild("HubESP") then
 		local box = Instance.new("BoxHandleAdornment")
-		box.Name = "HubESP"
-		box.AlwaysOnTop = true
-		box.ZIndex = 5
-		box.Adornee = root
-		box.Color3 = color
-		box.Size = isItem and Vector3.new(1.5, 1.5, 1.5) or Vector3.new(4, 5.5, 1)
-		box.Transparency = 0.6
-		box.Parent = root
+		box.Name = "HubESP" box.AlwaysOnTop = true box.ZIndex = 5 box.Adornee = root box.Color3 = color
+		box.Size = isItem and Vector3.new(1.4, 1.4, 1.4) or Vector3.new(3.8, 5.2, 1) box.Transparency = 0.55 box.Parent = root
 		
 		local billboard = Instance.new("BillboardGui")
-		billboard.Name = "HubESPName"
-		billboard.AlwaysOnTop = true
-		billboard.Size = UDim2.new(0, 100, 0, 20)
-		billboard.SizeOffset = Vector2.new(0, 2)
-		billboard.Parent = root
-		
+		billboard.Name = "HubESPName" billboard.AlwaysOnTop = true billboard.Size = UDim2.new(0, 100, 0, 20) billboard.SizeOffset = Vector2.new(0, 2) billboard.Parent = root
 		local tag = Instance.new("TextLabel")
-		tag.Size = UDim2.new(1, 0, 1, 0)
-		tag.BackgroundTransparency = 1
-		tag.Text = v.Name
-		tag.TextColor3 = color
-		tag.Font = Enum.Font.SourceSansBold
-		tag.TextSize = 13
-		tag.Parent = billboard
+		tag.Size = UDim2.new(1, 0, 1, 0) tag.BackgroundTransparency = 1 tag.Text = v.Name tag.TextColor3 = color tag.Font = Enum.Font.SourceSansBold tag.TextSize = 12 tag.Parent = billboard
 	end
 end
 
 local function CleanESP(root)
 	if root then
-		local b = root:FindFirstChild("HubESP")
-		local n = root:FindFirstChild("HubESPName")
-		if b then b:Destroy() end
-		if n then n:Destroy() end
+		local b = root:FindFirstChild("HubESP") local n = root:FindFirstChild("HubESPName")
+		if b then b:Destroy() end if n then n:Destroy() end
 	end
 end
 
--- Vòng lặp Core xử lý Toàn bộ Logic Phụ
 UIS.JumpRequest:Connect(function() if infJump and humanoid then pcall(function() humanoid:ChangeState("Jumping") end) end end)
-
-RunService.Stepped:Connect(function()
-	if noclip and char then
-		pcall(function()
-			for _, part in ipairs(char:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end
-		end)
-	end
-end)
+RunService.Stepped:Connect(function() if noclip and char then pcall(function() for _, p in ipairs(char:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end end) end end)
 
 RunService.Heartbeat:Connect(function()
-	-- Khóa thuộc tính tốc độ và lực nhảy liên tục
-	if humanoid and char and not flying then 
-		pcall(function() 
-			humanoid.WalkSpeed = CustomSpeed 
-			if CustomJump ~= 50 then humanoid.JumpPower = CustomJump end
-		end) 
-	end
-	
-	-- Tính năng Anti Stun (Chống khống chế)
+	if humanoid and char and not flying then pcall(function() humanoid.WalkSpeed = CustomSpeed end) end
 	if antiStun and humanoid then
 		pcall(function()
 			if humanoid.PlatformStand then humanoid.PlatformStand = false end
 			if humanoid:GetState() == Enum.HumanoidStateType.Ragdoll then humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end
 		end)
 	end
-
-	-- Logic quét hệ thống ESP
+	-- Quét vòng lặp ESP liên tục
 	for _, p in ipairs(Players:GetPlayers()) do
-		local pchar = p.Character
-		local hrp = pchar and pchar:FindFirstChild("HumanoidRootPart")
-		if espEnabled then if hrp then ApplyESP(pchar, Color3.fromRGB(0, 255, 100), false) end else CleanESP(hrp) end
+		local pc = p.Character local hrp = pc and pc:FindFirstChild("HumanoidRootPart")
+		if espEnabled then if hrp then ApplyESP(pc, Color3.fromRGB(0, 255, 120), false) end else CleanESP(hrp) end
 	end
-
 	for _, n in ipairs(workspace:GetChildren()) do
 		local nhrp = n:FindFirstChild("HumanoidRootPart")
 		if n:IsA("Model") and n:FindFirstChildOfClass("Humanoid") and not Players:GetPlayerFromCharacter(n) then
-			if npcEspEnabled then if nhrp then ApplyESP(n, Color3.fromRGB(255, 50, 50), false) end else CleanESP(nhrp) end
+			if npcEspEnabled then if nhrp then ApplyESP(n, Color3.fromRGB(255, 60, 60), false) end else CleanESP(nhrp) end
 		elseif n:IsA("Tool") or (n:IsA("Model") and not n:FindFirstChildOfClass("Humanoid")) then
 			local itemPart = n:FindFirstChildWhichIsA("BasePart")
-			if itemEspEnabled then if itemPart then ApplyESP(n, Color3.fromRGB(255, 200, 0), true) end else CleanESP(itemPart) end
+			if itemEspEnabled then if itemPart then ApplyESP(n, Color3.fromRGB(255, 215, 0), true) end else CleanESP(itemPart) end
 		end
 	end
 end)
 
--- Vòng lặp xử lý di chuyển khi bay bay (RenderStepped)
 RunService.RenderStepped:Connect(function()
 	local cam = workspace.CurrentCamera
 	if flying and flyBodyVelocity and flyBodyGyro and char and char:FindFirstChild("HumanoidRootPart") then
@@ -625,14 +549,14 @@ RunService.RenderStepped:Connect(function()
 	if fullbright then pcall(function() Lighting.Ambient = Color3.fromRGB(255, 255, 255) end) end
 end)
 
--- Các nút điều hướng cơ bản
-MinimizeBtn.MouseButton1Click:Connect(function() MainMenu.Visible = false; OpenMenuBtn.Visible = true end)
-OpenMenuBtn.MouseButton1Click:Connect(function() MainMenu.Visible = true; OpenMenuBtn.Visible = false end)
+-- ĐIỀU KHIỂN NÚT BẤM ĐÓNG MỞ
+MinimizeBtn.MouseButton1Click:Connect(function() MainMenu.Visible = false OpenMenuBtn.Visible = true end)
+OpenMenuBtn.MouseButton1Click:Connect(function() MainMenu.Visible = true OpenMenuBtn.Visible = false end)
 CloseBtn.MouseButton1Click:Connect(function()
-	noclip = false; flying = false; infJump = false; fullbright = false
+	noclip = false flying = false infJump = false fullbright = false
 	if flyBodyGyro then pcall(function() flyBodyGyro:Destroy() end) end
 	if flyBodyVelocity then pcall(function() flyBodyVelocity:Destroy() end) end
-	if humanoid then pcall(function() humanoid.PlatformStand = false; humanoid.WalkSpeed = 16 end) end
-	Lighting.Ambient = originalLighting.Ambient; Lighting.GlobalShadows = originalLighting.GlobalShadows
-	ScreenGui:Destroy()
+	if humanoid then pcall(function() humanoid.PlatformStand = false humanoid.WalkSpeed = 16 end) end
+	Lighting.Ambient = originalLighting.Ambient Lighting.GlobalShadows = originalLighting.GlobalShadows
+	NewScreenGui:Destroy()
 end)

@@ -10,9 +10,6 @@ local char = player.Character or player.CharacterAdded:Wait()
 local humanoid = char:WaitForChild("Humanoid", 5) or char:FindFirstChildOfClass("Humanoid")
 local camera = workspace.CurrentCamera
 
--- ===== HỖ TRỢ ĐA NỀN TẢNG =====
-local isMobile = UIS.TouchEnabled
-
 -- ===== BIẾN TOÀN CỤC =====
 local Settings = {
     noclip = false,
@@ -69,7 +66,6 @@ player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid", 5) or newChar:FindFirstChildOfClass("Humanoid")
     
-    -- Reset các biến fly khi chết
     if flyBodyGyro then pcall(function() flyBodyGyro:Destroy() end) flyBodyGyro = nil end
     if flyBodyVelocity then pcall(function() flyBodyVelocity:Destroy() end) flyBodyVelocity = nil end
     Settings.flying = false
@@ -81,7 +77,7 @@ ScreenGui.Name = "NguyenDzHub_v5_Ultimate"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = player:FindFirstChildOfClass("PlayerGui") or game:GetService("CoreGui")
 
--- ===== CHỨC NĂNG FLY THEO HƯỚNG CAM (BẢN CŨ - KHÔNG NÚT MOBILE) =====
+-- ===== CHỨC NĂNG FLY THEO HƯỚNG CAM (WASD THUẦN TÚY) =====
 local function ToggleFly(state)
     Settings.flying = state
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -129,7 +125,7 @@ local function ToggleAntiBan(state)
     end
 end
 
--- ===== LÕI GODMODE SỬA ĐỔI =====
+-- ===== LÕI GODMODE BẤT TỬ =====
 local godModeConnection = nil
 local function ToggleGodMode(state)
     Settings.godMode = state
@@ -150,37 +146,21 @@ local function ToggleGodMode(state)
     end
 end
 
--- ===== HỆ THỐNG VẼ ESP TỰ ĐỘNG THEO SIZE MÔ HÌNH (ĐÃ FIX BAO HẾT 100%) =====
+-- ===== HỆ THỐNG VẼ ESP BẢN CŨ ĐÃ DỊCH TÂM (BAO TRỌN 100% THÂN) =====
 local function CreateESP(v, color, isItem)
     if v == player or not v.Parent then return end
     local root = v:FindFirstChild("HumanoidRootPart") or v:FindFirstChildWhichIsA("BasePart")
     if not root then return end
     
     local espId = tostring(v.Name) .. "_" .. (isItem and "item" or "char")
-    if espObjects[espId] then 
-        -- Cập nhật kích thước liên tục cho Model để luôn bao trọn nếu quái thay đổi dạng
-        pcall(function()
-            if not isItem and v:IsA("Model") then
-                local _, size = v:GetBoundingBox()
-                local box = espObjects[espId]:FindFirstChild("HubESP")
-                if box then box.Size = size + Vector3.new(0.4, 0.4, 0.4) end -- Thêm một chút lề viền
-            end
-        end)
-        return 
-    end
+    if espObjects[espId] then return end 
     
     local espFolder = Instance.new("Folder")
     espFolder.Name = "FullESP_" .. v.Name
     espFolder.Parent = root
     
-    -- TÍNH TOÁN SIZE TỰ ĐỘNG: Nếu là Model (Quái/Người) thì lấy Size bao quát thực tế của nó
-    local size = Vector3.new(1.8, 1.8, 1.8)
-    if not isItem and v:IsA("Model") then
-        local _, modelSize = v:GetBoundingBox()
-        size = modelSize + Vector3.new(0.4, 0.4, 0.4) -- Tự co giãn theo tỉ lệ quái to hay nhỏ
-    elseif isItem and v:IsA("BasePart") then
-        size = v.Size
-    end
+    -- Kích thước khung hộp chữ nhật đứng đời đầu
+    local size = isItem and Vector3.new(2, 2, 2) or Vector3.new(4, 6, 2.5)
     
     local box = Instance.new("BoxHandleAdornment")
     box.Name = "HubESP"
@@ -190,13 +170,19 @@ local function CreateESP(v, color, isItem)
     box.Color3 = color
     box.Size = size
     box.Transparency = 0.65
+    
+    -- Dịch chuyển tâm lên trên 0.5 studs để ôm trọn phần đầu của nhân vật
+    if not isItem then
+        box.CFrame = CFrame.new(0, 0.5, 0)
+    end
+    
     box.Parent = espFolder
     
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "HubESPName"
     billboard.AlwaysOnTop = true
     billboard.Size = UDim2.new(0, 130, 0, 25)
-    billboard.ExtentsOffset = Vector3.new(0, (size.Y / 2) + 0.6, 0)
+    billboard.ExtentsOffset = Vector3.new(0, (size.Y / 2) + 0.8, 0)
     billboard.Parent = espFolder
     
     local tag = Instance.new("TextLabel", billboard)
@@ -433,9 +419,9 @@ AddSlider(P_Main, "Lực nhảy", 6, 50, 250, 50, function(v)
 end)
 AddToggle(P_Main, "Anti-Ban Engine", 7, false, function(s) ToggleAntiBan(s) end)
 
-AddTitle(P_Visuals, "ESP Tự Co Giãn Khung", 1)
-AddToggle(P_Visuals, "ESP Người chơi (🟢 Auto Size)", 2, false, function(s) Settings.espEnabled = s if not s then ClearAllESP() end end)
-AddToggle(P_Visuals, "ESP Quái vật (🔴 Auto Size)", 3, false, function(s) Settings.npcEspEnabled = s if not s then ClearAllESP() end end)
+AddTitle(P_Visuals, "ESP Bản Cũ Định Vị Tâm Chuẩn", 1)
+AddToggle(P_Visuals, "ESP Người chơi (🟢 Chỉ Người)", 2, false, function(s) Settings.espEnabled = s if not s then ClearAllESP() end end)
+AddToggle(P_Visuals, "ESP Quái vật (🔴 Chỉ Quái NPC)", 3, false, function(s) Settings.npcEspEnabled = s if not s then ClearAllESP() end end)
 AddToggle(P_Visuals, "ESP Vật phẩm (🔵 Hộp Vật Phẩm)", 4, false, function(s) Settings.itemEspEnabled = s if not s then ClearAllESP() end end)
 AddToggle(P_Visuals, "Fullbright", 5, false, function(s)
     Settings.fullbright = s
@@ -507,7 +493,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- ===== VÒNG LẶP TRAFFIC CHÍNH =====
+-- ===== VÒNG LẶP TRAFFIC PHÂN TÁCH LỌC ĐÚNG ĐỐI TƯỢNG =====
 local espInterval = 0.5
 local lastEspTime = 0
 
@@ -529,7 +515,7 @@ RunService.Heartbeat:Connect(function()
         lastEspTime = now
         if not Settings.espEnabled and not Settings.npcEspEnabled and not Settings.itemEspEnabled then ClearAllESP() return end
         
-        -- Dọn rác thực thể đã mất
+        -- Dọn dẹp thực thể rác khi biến mất hoặc out game
         for id, folder in pairs(espObjects) do
             if not folder or not folder.Parent or not folder.Parent.Parent then
                 pcall(function() folder:Destroy() end)
@@ -537,21 +523,28 @@ RunService.Heartbeat:Connect(function()
             end
         end
         
-        -- Quét thực thi vẽ ESP cấu hình Auto-Size
+        -- 🟢 CHỈ QUÉT NGƯỜI CHƠI THỰC SỰ
         if Settings.espEnabled then
             for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= player and p.Character then CreateESP(p.Character, Color3.fromRGB(0, 255, 100), false) end
-            end
-        end
-        
-        if Settings.npcEspEnabled then
-            for _, n in ipairs(workspace:GetChildren()) do
-                if n:IsA("Model") and n:FindFirstChildOfClass("Humanoid") and not Players:GetPlayerFromCharacter(n) then
-                    CreateESP(n, Color3.fromRGB(255, 50, 50), false)
+                if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then 
+                    CreateESP(p.Character, Color3.fromRGB(0, 255, 100), false) 
                 end
             end
         end
         
+        -- 🔴 CHỈ QUÉT QUÁI NPC (Có humanoid nhưng không phải người chơi)
+        if Settings.npcEspEnabled then
+            for _, n in ipairs(workspace:GetChildren()) do
+                if n:IsA("Model") and n:FindFirstChildOfClass("Humanoid") and n:FindFirstChild("HumanoidRootPart") then
+                    local isAPlayer = Players:GetPlayerFromCharacter(n)
+                    if not isAPlayer then
+                        CreateESP(n, Color3.fromRGB(255, 50, 50), false)
+                    end
+                end
+            end
+        end
+        
+        -- 🔵 ESP VẬT PHẨM
         if Settings.itemEspEnabled then
             for _, n in ipairs(workspace:GetChildren()) do
                 if n:IsA("Tool") or (n:IsA("Model") and not n:FindFirstChildOfClass("Humanoid") and n:FindFirstChildWhichIsA("BasePart")) then
@@ -562,7 +555,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- ===== ENGINE FLY ĐA NỀN TẢNG DI CHUYỂN THEO HƯỚNG CAMERA =====
+-- ===== ENGINE BAY DI CHUYỂN HOÀN TOÀN THEO HƯỚNG CAM (KHÔNG NÚT MOBILE) =====
 RunService.RenderStepped:Connect(function()
     if Settings.flying and flyBodyVelocity and flyBodyGyro and char and char:FindFirstChild("HumanoidRootPart") then 
         pcall(function()
@@ -592,7 +585,7 @@ RunService.RenderStepped:Connect(function()
     if Settings.fullbright then pcall(function() Lighting.Ambient = Color3.fromRGB(255, 255, 255) end) end
 end)
 
--- ===== HỦY SCRIPT HOÀN TOÀN KHI ĐÓNG =====
+-- ===== HỦY TOÀN BỘ SCRIPT KHI ĐÓNG =====
 MinimizeBtn.MouseButton1Click:Connect(function() MainMenu.Visible = false; OpenMenuBtn.Visible = true end)
 OpenMenuBtn.MouseButton1Click:Connect(function() MainMenu.Visible = true; OpenMenuBtn.Visible = false end)
 

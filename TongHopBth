@@ -37,11 +37,8 @@ local ThemeColor = Color3.fromRGB(255, 50, 50)
 local originalMaterials = {}
 local originalLighting = { GlobalShadows = Lighting.GlobalShadows, Ambient = Lighting.Ambient }
 
--- ===== FLY HỖ TRỢ TOUCH & PC (BẢN CŨ CAMERA DIRECTION) =====
+-- ===== FLY BIẾN ĐIỀU KHIỂN =====
 local flyBodyGyro, flyBodyVelocity = nil, nil
-local mobileFlyUp = false
-local mobileFlyDown = false
-local flyUpBtn, flyDownBtn = nil, nil
 
 -- Xóa GUI cũ trước khi khởi tạo bất kỳ biến UI nào
 local function CleanOldGUI()
@@ -72,15 +69,10 @@ player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid", 5) or newChar:FindFirstChildOfClass("Humanoid")
     
-    -- Reset các biến fly
+    -- Reset các biến fly khi chết
     if flyBodyGyro then pcall(function() flyBodyGyro:Destroy() end) flyBodyGyro = nil end
     if flyBodyVelocity then pcall(function() flyBodyVelocity:Destroy() end) flyBodyVelocity = nil end
     Settings.flying = false
-    
-    -- Xóa nút fly mobile
-    if flyUpBtn then pcall(function() flyUpBtn:Destroy() end) flyUpBtn = nil end
-    if flyDownBtn then pcall(function() flyDownBtn:Destroy() end) flyDownBtn = nil end
-    mobileFlyUp, mobileFlyDown = false, false
 end)
 
 -- ===== KHỞI TẠO SCREEN GUI =====
@@ -89,45 +81,7 @@ ScreenGui.Name = "NguyenDzHub_v5_Ultimate"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = player:FindFirstChildOfClass("PlayerGui") or game:GetService("CoreGui")
 
-local function CreateMobileFlyControls()
-    if flyUpBtn then return end
-    
-    flyUpBtn = Instance.new("TextButton", ScreenGui)
-    flyUpBtn.Size = UDim2.new(0, 60, 0, 60)
-    flyUpBtn.Position = UDim2.new(0.85, 0, 0.25, 0)
-    flyUpBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
-    flyUpBtn.Text = "⬆"
-    flyUpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    flyUpBtn.Font = Enum.Font.SourceSansBold
-    flyUpBtn.TextSize = 30
-    Instance.new("UICorner", flyUpBtn).CornerRadius = UDim.new(0, 30)
-    
-    flyDownBtn = Instance.new("TextButton", ScreenGui)
-    flyDownBtn.Size = UDim2.new(0, 60, 0, 60)
-    flyDownBtn.Position = UDim2.new(0.85, 0, 0.45, 0)
-    flyDownBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-    flyDownBtn.Text = "⬇"
-    flyDownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    flyDownBtn.Font = Enum.Font.SourceSansBold
-    flyDownBtn.TextSize = 30
-    Instance.new("UICorner", flyDownBtn).CornerRadius = UDim.new(0, 30)
-    
-    flyUpBtn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then mobileFlyUp = true end
-    end)
-    flyUpBtn.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then mobileFlyUp = false end
-    end)
-    
-    flyDownBtn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then mobileFlyDown = true end
-    end)
-    flyDownBtn.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then mobileFlyDown = false end
-    end)
-end
-
--- ===== CHỨC NĂNG FLY THEO HƯỚNG CAM (BẢN CŨ) =====
+-- ===== CHỨC NĂNG FLY THEO HƯỚNG CAM (BẢN CŨ - KHÔNG NÚT MOBILE) =====
 local function ToggleFly(state)
     Settings.flying = state
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -148,17 +102,12 @@ local function ToggleFly(state)
             flyBodyVelocity.maxForce = Vector3.new(9e9, 9e9, 9e9)
             
             if humanoid then humanoid.PlatformStand = true end
-            if isMobile then CreateMobileFlyControls() end
         end)
     else
         if flyBodyGyro then pcall(function() flyBodyGyro:Destroy() end) flyBodyGyro = nil end
         if flyBodyVelocity then pcall(function() flyBodyVelocity:Destroy() end) flyBodyVelocity = nil end
         if humanoid then humanoid.PlatformStand = false end
         hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-        
-        if flyUpBtn then pcall(function() flyUpBtn:Destroy() end) flyUpBtn = nil end
-        if flyDownBtn then pcall(function() flyDownBtn:Destroy() end) flyDownBtn = nil end
-        mobileFlyUp, mobileFlyDown = false, false
     end
 end
 
@@ -201,22 +150,37 @@ local function ToggleGodMode(state)
     end
 end
 
--- ===== HỆ THỐNG VẼ ESP BAO TRỌN THÂN (ĐÃ TỐI ƯU) =====
+-- ===== HỆ THỐNG VẼ ESP TỰ ĐỘNG THEO SIZE MÔ HÌNH (ĐÃ FIX BAO HẾT 100%) =====
 local function CreateESP(v, color, isItem)
     if v == player or not v.Parent then return end
     local root = v:FindFirstChild("HumanoidRootPart") or v:FindFirstChildWhichIsA("BasePart")
     if not root then return end
     
     local espId = tostring(v.Name) .. "_" .. (isItem and "item" or "char")
-    if espObjects[espId] then return end
+    if espObjects[espId] then 
+        -- Cập nhật kích thước liên tục cho Model để luôn bao trọn nếu quái thay đổi dạng
+        pcall(function()
+            if not isItem and v:IsA("Model") then
+                local _, size = v:GetBoundingBox()
+                local box = espObjects[espId]:FindFirstChild("HubESP")
+                if box then box.Size = size + Vector3.new(0.4, 0.4, 0.4) end -- Thêm một chút lề viền
+            end
+        end)
+        return 
+    end
     
-    -- Tạo một Folder tổng quản lý rác của Object này
     local espFolder = Instance.new("Folder")
     espFolder.Name = "FullESP_" .. v.Name
     espFolder.Parent = root
     
-    -- Kích cỡ chuẩn: Nếu là người/NPC thì hộp 4, 5.8, 2.5 sẽ bao trọn gói từ đầu tới chân
-    local size = isItem and Vector3.new(1.8, 1.8, 1.8) or Vector3.new(4, 5.8, 2.5)
+    -- TÍNH TOÁN SIZE TỰ ĐỘNG: Nếu là Model (Quái/Người) thì lấy Size bao quát thực tế của nó
+    local size = Vector3.new(1.8, 1.8, 1.8)
+    if not isItem and v:IsA("Model") then
+        local _, modelSize = v:GetBoundingBox()
+        size = modelSize + Vector3.new(0.4, 0.4, 0.4) -- Tự co giãn theo tỉ lệ quái to hay nhỏ
+    elseif isItem and v:IsA("BasePart") then
+        size = v.Size
+    end
     
     local box = Instance.new("BoxHandleAdornment")
     box.Name = "HubESP"
@@ -232,7 +196,7 @@ local function CreateESP(v, color, isItem)
     billboard.Name = "HubESPName"
     billboard.AlwaysOnTop = true
     billboard.Size = UDim2.new(0, 130, 0, 25)
-    billboard.ExtentsOffset = Vector3.new(0, (size.Y / 2) + 0.6, 0) -- Đẩy hẳn chữ lên trên nóc hộp
+    billboard.ExtentsOffset = Vector3.new(0, (size.Y / 2) + 0.6, 0)
     billboard.Parent = espFolder
     
     local tag = Instance.new("TextLabel", billboard)
@@ -247,7 +211,6 @@ local function CreateESP(v, color, isItem)
     
     espObjects[espId] = espFolder
     
-    -- Lắng nghe sự kiện chết để xóa ngay lập tức (Không chờ vòng lặp)
     local hum = v:FindFirstChildOfClass("Humanoid")
     if hum then
         local diedConn
@@ -470,9 +433,9 @@ AddSlider(P_Main, "Lực nhảy", 6, 50, 250, 50, function(v)
 end)
 AddToggle(P_Main, "Anti-Ban Engine", 7, false, function(s) ToggleAntiBan(s) end)
 
-AddTitle(P_Visuals, "ESP & Tầm nhìn", 1)
-AddToggle(P_Visuals, "ESP Người chơi (🟢 Full Khung)", 2, false, function(s) Settings.espEnabled = s if not s then ClearAllESP() end end)
-AddToggle(P_Visuals, "ESP Quái vật (🔴 Full Khung)", 3, false, function(s) Settings.npcEspEnabled = s if not s then ClearAllESP() end end)
+AddTitle(P_Visuals, "ESP Tự Co Giãn Khung", 1)
+AddToggle(P_Visuals, "ESP Người chơi (🟢 Auto Size)", 2, false, function(s) Settings.espEnabled = s if not s then ClearAllESP() end end)
+AddToggle(P_Visuals, "ESP Quái vật (🔴 Auto Size)", 3, false, function(s) Settings.npcEspEnabled = s if not s then ClearAllESP() end end)
 AddToggle(P_Visuals, "ESP Vật phẩm (🔵 Hộp Vật Phẩm)", 4, false, function(s) Settings.itemEspEnabled = s if not s then ClearAllESP() end end)
 AddToggle(P_Visuals, "Fullbright", 5, false, function(s)
     Settings.fullbright = s
@@ -544,7 +507,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- ===== VÒNG LẶP TRAFFIC CHÍNH (QUÉT ESP TỐI ƯU) =====
+-- ===== VÒNG LẶP TRAFFIC CHÍNH =====
 local espInterval = 0.5
 local lastEspTime = 0
 
@@ -566,7 +529,7 @@ RunService.Heartbeat:Connect(function()
         lastEspTime = now
         if not Settings.espEnabled and not Settings.npcEspEnabled and not Settings.itemEspEnabled then ClearAllESP() return end
         
-        -- Dọn dẹp rác khi Object biến mất khỏi map (Chống lag tích tụ)
+        -- Dọn rác thực thể đã mất
         for id, folder in pairs(espObjects) do
             if not folder or not folder.Parent or not folder.Parent.Parent then
                 pcall(function() folder:Destroy() end)
@@ -574,7 +537,7 @@ RunService.Heartbeat:Connect(function()
             end
         end
         
-        -- Quét tạo ESP
+        -- Quét thực thi vẽ ESP cấu hình Auto-Size
         if Settings.espEnabled then
             for _, p in ipairs(Players:GetPlayers()) do
                 if p ~= player and p.Character then CreateESP(p.Character, Color3.fromRGB(0, 255, 100), false) end
@@ -599,45 +562,37 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- ===== ENGINE FLY ĐA NỀN TẢNG DI CHUYỂN THEO HƯỚNG CAMERA W/S/A/D =====
+-- ===== ENGINE FLY ĐA NỀN TẢNG DI CHUYỂN THEO HƯỚNG CAMERA =====
 RunService.RenderStepped:Connect(function()
     if Settings.flying and flyBodyVelocity and flyBodyGyro and char and char:FindFirstChild("HumanoidRootPart") then 
-        local hrp = char.HumanoidRootPart
         pcall(function()
             local moveDir = Vector3.new(0, 0, 0)
             
-            -- Đồng bộ góc quay BodyGyro thẳng tắp với Camera mặt định hướng
             flyBodyGyro.CFrame = camera.CFrame
             
-            -- Ép lực di chuyển Vector đa hướng theo CFrame Camera (LookVector)
             if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camera.CFrame.LookVector end
             if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camera.CFrame.LookVector end
             if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - camera.CFrame.RightVector end
             if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + camera.CFrame.RightVector end
             
-            -- Phím phụ hỗ trợ bay lên / lao xuống độc lập trục Y
             if UIS:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
             if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
             
-            -- Hỗ trợ nút JoyStick trên Điện thoại di động
-            if mobileFlyUp then moveDir = moveDir + Vector3.new(0, 1, 0) end
-            if mobileFlyDown then moveDir = moveDir - Vector3.new(0, 1, 0) end
             if humanoid and humanoid.MoveDirection.Magnitude > 0 then
                 moveDir = moveDir + camera.CFrame:VectorToWorldSpace(Vector3.new(humanoid.MoveDirection.X, 0, humanoid.MoveDirection.Z))
             end
             
-            -- Thực thi vận tốc đẩy nhân vật đi
             if moveDir.Magnitude > 0 then
                 flyBodyVelocity.velocity = moveDir.Unit * Settings.FlySpeed
             else
-                flyBodyVelocity.velocity = Vector3.new(0, 0.1, 0) -- Thả nút đứng im tại chỗ không bị rơi rơi
+                flyBodyVelocity.velocity = Vector3.new(0, 0.1, 0)
             end
         end) 
     end
     if Settings.fullbright then pcall(function() Lighting.Ambient = Color3.fromRGB(255, 255, 255) end) end
 end)
 
--- ===== HỦY SCRIPT HOÀN TOÀN KHI ĐÓNG TẮT HẾT TÍNH NĂNG =====
+-- ===== HỦY SCRIPT HOÀN TOÀN KHI ĐÓNG =====
 MinimizeBtn.MouseButton1Click:Connect(function() MainMenu.Visible = false; OpenMenuBtn.Visible = true end)
 OpenMenuBtn.MouseButton1Click:Connect(function() MainMenu.Visible = true; OpenMenuBtn.Visible = false end)
 

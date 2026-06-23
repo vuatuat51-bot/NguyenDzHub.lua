@@ -8,6 +8,7 @@ local TeleportService = game:GetService("TeleportService")
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local humanoid = char:WaitForChild("Humanoid", 5) or char:FindFirstChildOfClass("Humanoid")
+local camera = workspace.CurrentCamera
 
 -- ===== HỖ TRỢ ĐA NỀN TẢNG =====
 local isMobile = UIS.TouchEnabled
@@ -36,7 +37,7 @@ local ThemeColor = Color3.fromRGB(255, 50, 50)
 local originalMaterials = {}
 local originalLighting = { GlobalShadows = Lighting.GlobalShadows, Ambient = Lighting.Ambient }
 
--- ===== FLY HỖ TRỢ TOUCH & GAMEPAD =====
+-- ===== FLY HỖ TRỢ TOUCH & PC (BẢN CŨ CAMERA DIRECTION) =====
 local flyBodyGyro, flyBodyVelocity = nil, nil
 local mobileFlyUp = false
 local mobileFlyDown = false
@@ -56,7 +57,17 @@ local function CleanOldGUI()
 end
 CleanOldGUI()
 
--- ===== XỬ LÝ KHI NHÂN VẬT RESPAWN (HẾT LỖI KẸT ESP / FLY) =====
+-- ===== HỆ THỐNG ESP QUẢN LÝ TẬP TRUNG =====
+local espObjects = {}
+
+local function ClearAllESP()
+    for id, folder in pairs(espObjects) do
+        pcall(function() folder:Destroy() end)
+    end
+    table.clear(espObjects)
+end
+
+-- ===== XỬ LÝ KHI NHÂN VẬT RESPAWN =====
 player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid", 5) or newChar:FindFirstChildOfClass("Humanoid")
@@ -72,7 +83,7 @@ player.CharacterAdded:Connect(function(newChar)
     mobileFlyUp, mobileFlyDown = false, false
 end)
 
--- ===== KHỞI TẠO SCREEN GUI TRƯỚC ĐỂ TRÁNH LỖI BIẾN NIL =====
+-- ===== KHỞI TẠO SCREEN GUI =====
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "NguyenDzHub_v5_Ultimate"
 ScreenGui.ResetOnSpawn = false
@@ -116,6 +127,7 @@ local function CreateMobileFlyControls()
     end)
 end
 
+-- ===== CHỨC NĂNG FLY THEO HƯỚNG CAM (BẢN CŨ) =====
 local function ToggleFly(state)
     Settings.flying = state
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -129,6 +141,7 @@ local function ToggleFly(state)
             flyBodyGyro = Instance.new("BodyGyro", hrp)
             flyBodyGyro.P = 9e4
             flyBodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+            flyBodyGyro.CFrame = camera.CFrame
             
             flyBodyVelocity = Instance.new("BodyVelocity", hrp)
             flyBodyVelocity.velocity = Vector3.new(0, 0.1, 0)
@@ -167,7 +180,7 @@ local function ToggleAntiBan(state)
     end
 end
 
--- ===== LÕI GODMODE SỬA ĐỔI CHỐNG DIED =====
+-- ===== LÕI GODMODE SỬA ĐỔI =====
 local godModeConnection = nil
 local function ToggleGodMode(state)
     Settings.godMode = state
@@ -188,17 +201,22 @@ local function ToggleGodMode(state)
     end
 end
 
--- ===== HỆ THỐNG VẼ ESP AN TOÀN =====
-local espObjects = {}
+-- ===== HỆ THỐNG VẼ ESP BAO TRỌN THÂN (ĐÃ TỐI ƯU) =====
 local function CreateESP(v, color, isItem)
     if v == player or not v.Parent then return end
     local root = v:FindFirstChild("HumanoidRootPart") or v:FindFirstChildWhichIsA("BasePart")
     if not root then return end
     
-    local espId = tostring(v.Name) .. "_" .. tostring(isItem and "item" or "char")
+    local espId = tostring(v.Name) .. "_" .. (isItem and "item" or "char")
     if espObjects[espId] then return end
     
-    local size = isItem and Vector3.new(1.5, 1.5, 1.5) or Vector3.new(3.8, 5.5, 1)
+    -- Tạo một Folder tổng quản lý rác của Object này
+    local espFolder = Instance.new("Folder")
+    espFolder.Name = "FullESP_" .. v.Name
+    espFolder.Parent = root
+    
+    -- Kích cỡ chuẩn: Nếu là người/NPC thì hộp 4, 5.8, 2.5 sẽ bao trọn gói từ đầu tới chân
+    local size = isItem and Vector3.new(1.8, 1.8, 1.8) or Vector3.new(4, 5.8, 2.5)
     
     local box = Instance.new("BoxHandleAdornment")
     box.Name = "HubESP"
@@ -207,34 +225,38 @@ local function CreateESP(v, color, isItem)
     box.Adornee = root
     box.Color3 = color
     box.Size = size
-    box.Transparency = 0.5
-    box.Parent = root
+    box.Transparency = 0.65
+    box.Parent = espFolder
     
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "HubESPName"
     billboard.AlwaysOnTop = true
-    billboard.Size = UDim2.new(0, 120, 0, 25)
-    billboard.SizeOffset = Vector2.new(0, size.Y/2 + 0.5)
-    billboard.Parent = root
+    billboard.Size = UDim2.new(0, 130, 0, 25)
+    billboard.ExtentsOffset = Vector3.new(0, (size.Y / 2) + 0.6, 0) -- Đẩy hẳn chữ lên trên nóc hộp
+    billboard.Parent = espFolder
     
     local tag = Instance.new("TextLabel", billboard)
     tag.Size = UDim2.new(1, 0, 1, 0)
     tag.BackgroundTransparency = 1
     tag.Text = v.Name
-    tag.TextColor3 = color
+    tag.TextColor3 = Color3.fromRGB(255, 255, 255)
     tag.Font = Enum.Font.SourceSansBold
     tag.TextSize = 13
-    tag.TextStrokeTransparency = 0.3
+    tag.TextStrokeTransparency = 0.2
+    tag.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
     
-    espObjects[espId] = {box = box, billboard = billboard, root = root}
-end
-
-local function ClearAllESP()
-    for id, data in pairs(espObjects) do
-        pcall(function() if data.box then data.box:Destroy() end end)
-        pcall(function() if data.billboard then data.billboard:Destroy() end end)
+    espObjects[espId] = espFolder
+    
+    -- Lắng nghe sự kiện chết để xóa ngay lập tức (Không chờ vòng lặp)
+    local hum = v:FindFirstChildOfClass("Humanoid")
+    if hum then
+        local diedConn
+        diedConn = hum.Died:Connect(function()
+            pcall(function() espFolder:Destroy() end)
+            espObjects[espId] = nil
+            if diedConn then diedConn:Disconnect() end
+        end)
     end
-    table.clear(espObjects)
 end
 
 -- ===== THIẾT KẾ KHUNG KÉO THẢ =====
@@ -284,7 +306,6 @@ MainMenu.Visible = false
 Instance.new("UICorner", MainMenu).CornerRadius = UDim.new(0, 12)
 MakeDraggable(MainMenu)
 
--- Topbar & Elements
 local TopBar = Instance.new("Frame", MainMenu)
 TopBar.Size = UDim2.new(1, 0, 0, 40)
 TopBar.BackgroundTransparency = 1
@@ -353,7 +374,6 @@ local P_Utility = NewTab("Utility", 3)
 local P_Configs = NewTab("Configs", 4)
 Pages["Main Hacks"].Visible = true; TabButtons["Main Hacks"].BackgroundTransparency = 0.5
 
--- UI Builders
 local function AddTitle(page, text, yIndex)
     local Lbl = Instance.new("TextLabel", page)
     Lbl.Size = UDim2.new(1, 0, 0, 20); Lbl.Position = UDim2.new(0, 0, 0, (yIndex - 1) * 42); Lbl.BackgroundTransparency = 1
@@ -412,7 +432,7 @@ local function AddSlider(page, text, yIndex, min, max, default, callback)
     Btn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then sliding = true end end)
     UIS.InputChanged:Connect(function(i) if sliding and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then Update(i.Position) end end)
     UIS.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then sliding = false end end)
-end -- <-- ĐÃ SỬA LỖI THIẾT KẾ: Đóng chính xác hàm AddSlider ở đây
+end
 
 local function AddInput(page, text, yIndex, defVal, callback)
     local Row = Instance.new("Frame", page)
@@ -451,9 +471,9 @@ end)
 AddToggle(P_Main, "Anti-Ban Engine", 7, false, function(s) ToggleAntiBan(s) end)
 
 AddTitle(P_Visuals, "ESP & Tầm nhìn", 1)
-AddToggle(P_Visuals, "ESP Người chơi (🟢 Xanh lá)", 2, false, function(s) Settings.espEnabled = s if not s then ClearAllESP() end end)
-AddToggle(P_Visuals, "ESP Quái vật (🔴 Đỏ)", 3, false, function(s) Settings.npcEspEnabled = s if not s then ClearAllESP() end end)
-AddToggle(P_Visuals, "ESP Vật phẩm (🔵 Xanh dương)", 4, false, function(s) Settings.itemEspEnabled = s if not s then ClearAllESP() end end)
+AddToggle(P_Visuals, "ESP Người chơi (🟢 Full Khung)", 2, false, function(s) Settings.espEnabled = s if not s then ClearAllESP() end end)
+AddToggle(P_Visuals, "ESP Quái vật (🔴 Full Khung)", 3, false, function(s) Settings.npcEspEnabled = s if not s then ClearAllESP() end end)
+AddToggle(P_Visuals, "ESP Vật phẩm (🔵 Hộp Vật Phẩm)", 4, false, function(s) Settings.itemEspEnabled = s if not s then ClearAllESP() end end)
 AddToggle(P_Visuals, "Fullbright", 5, false, function(s)
     Settings.fullbright = s
     if s then Lighting.Ambient = Color3.fromRGB(255, 255, 255) Lighting.GlobalShadows = false
@@ -524,8 +544,8 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- ===== VÒNG LẶP TRAFFIC CHÍNH =====
-local espInterval = 0.4
+-- ===== VÒNG LẶP TRAFFIC CHÍNH (QUÉT ESP TỐI ƯU) =====
+local espInterval = 0.5
 local lastEspTime = 0
 
 RunService.Heartbeat:Connect(function()
@@ -546,68 +566,78 @@ RunService.Heartbeat:Connect(function()
         lastEspTime = now
         if not Settings.espEnabled and not Settings.npcEspEnabled and not Settings.itemEspEnabled then ClearAllESP() return end
         
-        -- Dọn dẹp ESP cũ không còn thực thể hợp lệ (ngăn kẹt hình khi chết/rời map)
-        for id, data in pairs(espObjects) do
-            if not data.root or not data.root.Parent or not data.root.Parent.Parent then
-                pcall(function() if data.box then data.box:Destroy() end end)
-                pcall(function() if data.billboard then data.billboard:Destroy() end end)
+        -- Dọn dẹp rác khi Object biến mất khỏi map (Chống lag tích tụ)
+        for id, folder in pairs(espObjects) do
+            if not folder or not folder.Parent or not folder.Parent.Parent then
+                pcall(function() folder:Destroy() end)
                 espObjects[id] = nil
             end
         end
         
+        -- Quét tạo ESP
         if Settings.espEnabled then
             for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= player and p.Character then CreateESP(p.Character, Color3.fromRGB(0, 255, 0), false) end
+                if p ~= player and p.Character then CreateESP(p.Character, Color3.fromRGB(0, 255, 100), false) end
             end
         end
         
         if Settings.npcEspEnabled then
             for _, n in ipairs(workspace:GetChildren()) do
                 if n:IsA("Model") and n:FindFirstChildOfClass("Humanoid") and not Players:GetPlayerFromCharacter(n) then
-                    CreateESP(n, Color3.fromRGB(255, 0, 0), false)
+                    CreateESP(n, Color3.fromRGB(255, 50, 50), false)
                 end
             end
         end
         
         if Settings.itemEspEnabled then
             for _, n in ipairs(workspace:GetChildren()) do
-                if n:IsA("Tool") or (n:IsA("Model") and not n:FindFirstChildOfClass("Humanoid")) then
-                    CreateESP(n, Color3.fromRGB(0, 100, 255), true)
+                if n:IsA("Tool") or (n:IsA("Model") and not n:FindFirstChildOfClass("Humanoid") and n:FindFirstChildWhichIsA("BasePart")) then
+                    CreateESP(n, Color3.fromRGB(0, 150, 255), true)
                 end
             end
         end
     end
 end)
 
--- ===== ENGINE FLY ĐA NỀN TẢNG (RENDER STEP) =====
+-- ===== ENGINE FLY ĐA NỀN TẢNG DI CHUYỂN THEO HƯỚNG CAMERA W/S/A/D =====
 RunService.RenderStepped:Connect(function()
-    local cam = workspace.CurrentCamera
     if Settings.flying and flyBodyVelocity and flyBodyGyro and char and char:FindFirstChild("HumanoidRootPart") then 
+        local hrp = char.HumanoidRootPart
         pcall(function()
             local moveDir = Vector3.new(0, 0, 0)
             
-            if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
-            if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
-            if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector end
-            if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
+            -- Đồng bộ góc quay BodyGyro thẳng tắp với Camera mặt định hướng
+            flyBodyGyro.CFrame = camera.CFrame
+            
+            -- Ép lực di chuyển Vector đa hướng theo CFrame Camera (LookVector)
+            if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camera.CFrame.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camera.CFrame.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - camera.CFrame.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + camera.CFrame.RightVector end
+            
+            -- Phím phụ hỗ trợ bay lên / lao xuống độc lập trục Y
             if UIS:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
             if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
             
+            -- Hỗ trợ nút JoyStick trên Điện thoại di động
             if mobileFlyUp then moveDir = moveDir + Vector3.new(0, 1, 0) end
             if mobileFlyDown then moveDir = moveDir - Vector3.new(0, 1, 0) end
-            
             if humanoid and humanoid.MoveDirection.Magnitude > 0 then
-                moveDir = moveDir + humanoid.MoveDirection
+                moveDir = moveDir + camera.CFrame:VectorToWorldSpace(Vector3.new(humanoid.MoveDirection.X, 0, humanoid.MoveDirection.Z))
             end
             
-            flyBodyGyro.CFrame = cam.CFrame
-            flyBodyVelocity.velocity = moveDir.Magnitude > 0 and moveDir.Unit * Settings.FlySpeed or Vector3.new(0, 0.1, 0)
+            -- Thực thi vận tốc đẩy nhân vật đi
+            if moveDir.Magnitude > 0 then
+                flyBodyVelocity.velocity = moveDir.Unit * Settings.FlySpeed
+            else
+                flyBodyVelocity.velocity = Vector3.new(0, 0.1, 0) -- Thả nút đứng im tại chỗ không bị rơi rơi
+            end
         end) 
     end
     if Settings.fullbright then pcall(function() Lighting.Ambient = Color3.fromRGB(255, 255, 255) end) end
 end)
 
--- ===== HỦY SCRIPT HOÀN TOÀN KHI ĐÓNG =====
+-- ===== HỦY SCRIPT HOÀN TOÀN KHI ĐÓNG TẮT HẾT TÍNH NĂNG =====
 MinimizeBtn.MouseButton1Click:Connect(function() MainMenu.Visible = false; OpenMenuBtn.Visible = true end)
 OpenMenuBtn.MouseButton1Click:Connect(function() MainMenu.Visible = true; OpenMenuBtn.Visible = false end)
 

@@ -51,39 +51,40 @@ local function CleanOldGUI()
 end
 CleanOldGUI()
 
--- ===== HỆ THỐNG VẼ ESP DẤU CHẤM + TÊN (SIÊU NHẸ, GỌN GÀNG) =====
-local espObjects = {}
+-- ===== HỆ THỐNG VÈ ESP QUÉT THÂN NHIỆT (FIX LỖI NPC TRÙNG LẶP / MẤT DẤU CHẤM) =====
+local espObjects = {} -- Sử dụng Object làm Key thay vì dùng chuỗi String tên
 
 local function CreateESP(v, color, isItem)
-    if v == player or not v.Parent then return end
+    if not v or not v.Parent then return end
     
+    -- Lấy phần thân gốc chuẩn xác nhất để gắn ESP
     local root = v:FindFirstChild("HumanoidRootPart") or v:FindFirstChildWhichIsA("BasePart")
     if not root then return end
     
-    local espId = tostring(v.Name) .. "_" .. (isItem and "item" or "char")
-    if espObjects[espId] then return end 
+    -- Kiểm tra trùng lặp: Nếu thực thể này đang có ESP rồi thì bỏ qua
+    if espObjects[v] then return end 
     
     local espFolder = Instance.new("Folder")
-    espFolder.Name = "DotESP_" .. v.Name
+    espFolder.Name = "PureESP_" .. tostring(v.Name)
     espFolder.Parent = root
     
-    -- Dấu chấm tròn nhỏ gọn (Size cố định 0.4) tại tâm thực thể
+    -- Tạo dấu chấm tròn nhỏ gọn tại tâm thực thể
     local dot = Instance.new("BoxHandleAdornment")
     dot.Name = "HubDot"
     dot.AlwaysOnTop = true
     dot.ZIndex = 5
     dot.Adornee = root
     dot.Color3 = color
-    dot.Size = Vector3.new(0.4, 0.4, 0.4)
+    dot.Size = Vector3.new(0.5, 0.5, 0.5) -- Tăng nhẹ kích thước để nhìn rõ hơn
     dot.Transparency = 0
     dot.Parent = espFolder
     
-    -- Tên hiển thị phía trên dấu chấm
+    -- Tạo nhãn chữ hiển thị Tên
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "HubDotName"
     billboard.AlwaysOnTop = true
-    billboard.Size = UDim2.new(0, 130, 0, 25)
-    billboard.ExtentsOffset = Vector3.new(0, 1.2, 0)
+    billboard.Size = UDim2.new(0, 140, 0, 25)
+    billboard.ExtentsOffset = Vector3.new(0, 1.5, 0)
     billboard.Parent = espFolder
     
     local tag = Instance.new("TextLabel", billboard)
@@ -93,41 +94,129 @@ local function CreateESP(v, color, isItem)
     tag.TextColor3 = color
     tag.Font = Enum.Font.SourceSansBold
     tag.TextSize = 13
-    tag.TextStrokeTransparency = 0.2
+    tag.TextStrokeTransparency = 0.15
     tag.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
     
-    espObjects[espId] = espFolder
+    -- Lưu trữ liên kết trực tiếp bằng Object
+    espObjects[v] = espFolder
     
+    -- HỆ THỐNG DỌN DẸP TUYỆT ĐỐI CHỐNG LỖI STREAMINGENABLED
+    local disconnectAll
+    local connDied, connAncestry, connDestroying
+    
+    disconnectAll = function()
+        if connDied then connDied:Disconnect() end
+        if connAncestry then connAncestry:Disconnect() end
+        if connDestroying then connDestroying:Disconnect() end
+        pcall(function() espFolder:Destroy() end)
+        espObjects[v] = nil
+    end
+    
+    -- 1. Khi NPC chết hẳn
     local hum = v:FindFirstChildOfClass("Humanoid")
     if hum then
-        local diedConn
-        diedConn = hum.Died:Connect(function()
-            pcall(function() espFolder:Destroy() end)
-            espObjects[espId] = nil
-            if diedConn then diedConn:Disconnect() end
-        end)
+        connDied = hum.Died:Connect(disconnectAll)
     end
+    -- 2. Khi NPC bị dịch chuyển ra khỏi Workspace (Xóa tạm thời do đi xa)
+    connAncestry = v.AncestryChanged:Connect(function(_, parent)
+        if not parent then disconnectAll() end
+    end)
+    -- 3. Khi thực thể bị hủy hoàn toàn từ Server
+    connDestroying = v.Destroying:Connect(disconnectAll)
 end
 
 local function ClearAllESP()
-    for id, folder in pairs(espObjects) do
+    for obj, folder in pairs(espObjects) do
         pcall(function() folder:Destroy() end)
     end
     table.clear(espObjects)
 end
 
--- ===== DỌN DẸP KHI RESPAWN =====
+-- Đảm bảo dọn sạch kho khi nhân vật của ông bị reset/hồi sinh
 player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid", 5) or newChar:FindFirstChildOfClass("Humanoid")
-    
     if flyBodyGyro then pcall(function() flyBodyGyro:Destroy() end) flyBodyGyro = nil end
     if flyBodyVelocity then pcall(function() flyBodyVelocity:Destroy() end) flyBodyVelocity = nil end
     Settings.flying = false
-    
     ClearAllESP()
 end)
 
+-- ===== VÒNG LẶP ÉP TỐC ĐỘ CHẠY & CORE QUÉT SÂU QUÁI VẬT TOÀN DIỆN =====
+local espInterval = 0.4
+local lastEspTime = 0
+
+RunService.Heartbeat:Connect(function()
+    local now = tick()
+    
+    -- [1] ÉP TỐC ĐỘ LIÊN TỤC (ĐÃ FIX SLIDER CŨ)
+    if char and humanoid and not Settings.flying then 
+        pcall(function() 
+            if humanoid.WalkSpeed ~= Settings.CustomSpeed then
+                humanoid.WalkSpeed = Settings.CustomSpeed
+            end
+            if humanoid.UseJumpPower == false then
+                humanoid.UseJumpPower = true
+            end
+        end) 
+    end
+    
+    -- Anti Stun Tweak
+    if Settings.antiStun and humanoid then 
+        pcall(function()
+            if humanoid.PlatformStand then humanoid.PlatformStand = false end
+            if humanoid:GetState() == Enum.HumanoidStateType.Ragdoll then 
+                humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) 
+            end
+        end) 
+    end
+    
+    -- [2] LUỒNG TRÍ TUỆ NHÂN TẠO QUÉT ESP KHÔNG SÓT MỤC TIÊU
+    if now - lastEspTime >= espInterval then
+        lastEspTime = now
+        
+        -- Nếu tắt hết trên menu, giải phóng toàn bộ tài nguyên ngay lập tức để tăng FPS
+        if not Settings.espEnabled and not Settings.npcEspEnabled and not Settings.itemEspEnabled then
+            ClearAllESP()
+            return
+        end
+        
+        pcall(function()
+            -- Quét sâu tận gốc rễ của Game
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                
+                -- ĐIỀU KIỆN LỌC MODEL GỐC: Chỉ xử lý Model thực thể, bỏ qua bản thân người dùng
+                if obj:IsA("Model") and obj ~= char and obj.Parent then
+                    
+                    -- Lấy thông tin người chơi (nếu có) để phân loại với NPC
+                    local isPlayer = Players:GetPlayerFromCharacter(obj)
+                    local hum = obj:FindFirstChildOfClass("Humanoid")
+                    
+                    -- 🔴 KIỂM TRA & SỬA LỖI ESP NPC (QUÁI VẬT TRỐN TRONG THƯ MỤC ẨN)
+                    if Settings.npcEspEnabled and hum and hum.Health > 0 and not isPlayer then
+                        -- Kiểm tra lớp bọc: Nếu Model cha của nó cũng là một Model có Humanoid thì bỏ qua để tránh trùng tag
+                        local parentModel = obj.Parent:IsA("Model") and obj.Parent:FindFirstChildOfClass("Humanoid")
+                        if not parentModel then
+                            CreateESP(obj, Color3.fromRGB(255, 50, 50), false) -- Chấm Đỏ cho NPC
+                        end
+                    end
+                    
+                    -- 🟢 KIỂM TRA ESP NGƯỜI CHƠI KHÁC
+                    if Settings.espEnabled and isPlayer and isPlayer ~= player and hum and hum.Health > 0 then
+                        CreateESP(obj, Color3.fromRGB(0, 255, 100), false) -- Chấm Xanh cho Player
+                    end
+                
+                -- 🔵 KIỂM TRA ESP VẬT PHẨM (ITEMS / TOOLS)
+                elseif Settings.itemEspEnabled and obj:IsA("Tool") then
+                    local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart")
+                    if handle then 
+                        CreateESP(obj, Color3.fromRGB(0, 150, 255), true) -- Chấm Xanh Dương cho Vật phẩm
+                    end
+                end
+            end
+        end)
+    end
+end)
 -- ===== KHỞI TẠO SCREEN GUI =====
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "NguyenDzHub_v5_Ultimate"

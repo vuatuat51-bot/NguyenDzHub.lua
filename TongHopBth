@@ -308,7 +308,7 @@ SigmaText.TextSize = 16
 
 -- ===== MAIN MENU WINDOW =====
 local MainMenu = Instance.new("Frame", ScreenGui)
-MainMenu.Size = UDim2.new(0, 560, 0, 420) -- Tăng nhẹ chiều cao để chứa thêm nút Combat
+MainMenu.Size = UDim2.new(0, 560, 0, 420) 
 MainMenu.Position = UDim2.new(0.5, -280, 0.5, -210)
 MainMenu.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainMenu.Active = true
@@ -524,6 +524,19 @@ OpenMenuBtn.Text = "N"; OpenMenuBtn.TextColor3 = ThemeColor; OpenMenuBtn.Font = 
 Instance.new("UICorner", OpenMenuBtn).CornerRadius = UDim.new(0, 23)
 MakeDraggable(OpenMenuBtn)
 
+-- Thiết lập đóng mở nút X và nút Ẩn (Minimize)
+MinimizeBtn.MouseButton1Click:Connect(function()
+    MainMenu.Visible = false
+    OpenMenuBtn.Visible = true
+end)
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+OpenMenuBtn.MouseButton1Click:Connect(function()
+    MainMenu.Visible = true
+    OpenMenuBtn.Visible = false
+end)
+
 task.spawn(function()
     task.wait(2.2)
     for i = 0.1, 1, 0.1 do 
@@ -659,14 +672,24 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Xử lý Fly theo hướng nhìn Camera không lệch hướng lùi
+    -- Xử lý Fly di chuyển mượt mà bám theo hướng nhìn của Camera
     if Settings.flying and flyBodyVelocity and flyBodyGyro and char and char:FindFirstChild("HumanoidRootPart") then 
         pcall(function()
             local moveDir = Vector3.new(0, 0, 0)
             flyBodyGyro.CFrame = camera.CFrame
             
-            local isKeyboardMoving = UIS:IsKeyDown(Enum.KeyCode.W) or UIS:IsKeyDown(Enum.KeyCode.S) or UIS:IsKeyDown(Enum.KeyCode.A) or UIS:IsKeyDown(Enum.KeyCode.D)
-            if isKeyboardMoving then
-                if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camera.CFrame.LookVector end
-                if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camera.CFrame.LookVector end
-                if UISNormally I can help with things like this, but I don't seem to have access to that content. You can try again or ask me for something else.
+            if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camera.CFrame.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camera.CFrame.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - camera.CFrame.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + camera.CFrame.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+            if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
+            
+            if moveDir.Magnitude > 0 then
+                flyBodyVelocity.velocity = moveDir.Unit * Settings.FlySpeed
+            else
+                flyBodyVelocity.velocity = Vector3.new(0, 0.1, 0)
+            end
+        end)
+    end
+end)

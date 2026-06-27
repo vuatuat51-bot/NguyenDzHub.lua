@@ -24,8 +24,9 @@ local Settings = {
     godMode = false,
     antiBan = false,
     hitboxEnabled = false,
-    hitboxSize = 2,
+    hitboxSize = 15, -- Mặc định kích thước hitbox lớn trực quan
     aimbotEnabled = false,
+    aimbotFOV = 150,  -- Bán kính vòng tròn giữa màn hình
     FlySpeed = 50,
     CustomSpeed = 16,
     CustomJump = 50,
@@ -56,7 +57,34 @@ local function CleanOldGUI()
 end
 CleanOldGUI()
 
--- ===== HỆ THỐNG VẼ ESP CHỐNG LAG (ĐỊNH DANH BẰNG OBJECT) =====
+-- ===== KHỞI TẠO VÒNG TRÒN FOV GIỮA MÀN HÌNH (DÙNG ĐỒ HỌA CORE CỦA ROBLOX) =====
+local FOVGui = Instance.new("ScreenGui")
+FOVGui.Name = "NguyenDzHub_FOV"
+FOVGui.ResetOnSpawn = false
+FOVGui.Parent = player:FindFirstChildOfClass("PlayerGui") or game:GetService("CoreGui")
+
+local FOVCircle = Instance.new("Frame", FOVGui)
+FOVCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+FOVCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+FOVCircle.Size = UDim2.new(0, Settings.aimbotFOV * 2, 0, Settings.aimbotFOV * 2)
+FOVCircle.BackgroundTransparency = 1
+FOVCircle.Visible = false
+
+local FOVStroke = Instance.new("UIStroke", FOVCircle)
+FOVStroke.Color = Color3.fromRGB(0, 255, 255) -- Màu xanh neon cực đẹp
+FOVStroke.Thickness = 1.5
+FOVStroke.Transparency = 0.4
+
+local FOVCorner = Instance.new("UICorner", FOVCircle)
+FOVCorner.CornerRadius = UDim.new(1, 0) -- Biến khung vuông thành hình tròn tuyệt đối
+
+-- Cập nhật trạng thái vòng tròn FOV công khai
+local function UpdateFOVDisplay()
+    FOVCircle.Visible = Settings.aimbotEnabled
+    FOVCircle.Size = UDim2.new(0, Settings.aimbotFOV * 2, 0, Settings.aimbotFOV * 2)
+end
+
+-- ===== HỆ THỐNG VẼ ESP CHỐNG LAG =====
 local function CreateESP(v, color, isItem)
     if not v or not v.Parent then return end
     local root = v:FindFirstChild("HumanoidRootPart") or v:FindFirstChildWhichIsA("BasePart")
@@ -118,15 +146,24 @@ local function ClearAllESP()
     table.clear(espObjects)
 end
 
--- ===== HỆ THỐNG TĂNG HITBOX NPC SIÊU MƯỢT =====
+-- ===== HỆ THỐNG TĂNG HITBOX NPC VÀ HIỆN THỊ TRỰC QUAN KHỐI HỘP =====
 local function ApplyHitbox(npc)
     local hrp = npc:FindFirstChild("HumanoidRootPart")
     if hrp and npc:FindFirstChildOfClass("Humanoid") then
         if not originalSizes[hrp] then
-            originalSizes[hrp] = {Size = hrp.Size, Transparency = hrp.Transparency, CanCollide = hrp.CanCollide}
+            originalSizes[hrp] = {
+                Size = hrp.Size, 
+                Transparency = hrp.Transparency, 
+                CanCollide = hrp.CanCollide,
+                Color = hrp.Color,
+                Material = hrp.Material
+            }
         end
+        -- Phình to khối và đổi màu đỏ trong suốt để hiển thị rõ ràng lên màn hình
         hrp.Size = Vector3.new(Settings.hitboxSize, Settings.hitboxSize, Settings.hitboxSize)
-        hrp.Transparency = 0.7
+        hrp.Transparency = 0.65 
+        hrp.Color = Color3.fromRGB(255, 50, 80)
+        hrp.Material = Enum.Material.ForceField -- Tạo hiệu ứng phát sáng mờ ảo
         hrp.CanCollide = false
     end
 end
@@ -137,27 +174,33 @@ local function ResetHitboxes()
             hrp.Size = data.Size
             hrp.Transparency = data.Transparency
             hrp.CanCollide = data.CanCollide
+            hrp.Color = data.Color
+            hrp.Material = data.Material
         end
     end
     table.clear(originalSizes)
 end
 
--- ===== HỆ THỐNG GHIM TÂM (AIMBOT LOCK CAMERA QUÁI GẦN NHẤT) =====
-local function GetClosestNPC()
+-- ===== HỆ THỐNG GHIM TÂM THEO BÁN KÍNH VÒNG TRÒN FOV MÀN HÌNH =====
+local function GetClosestNPCToMouse()
     local closestNPC = nil
     local shortestDistance = math.huge
-    local myHrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not myHrp then return nil end
+    local centerScreen = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
     
     local function CheckTarget(obj)
         if obj:IsA("Model") and obj ~= char and not game.Players:GetPlayerFromCharacter(obj) then
             local hum = obj:FindFirstChildOfClass("Humanoid")
             local hrp = obj:FindFirstChild("HumanoidRootPart")
             if hum and hum.Health > 0 and hrp then
-                local distance = (myHrp.Position - hrp.Position).Magnitude
-                if distance < shortestDistance then
-                    shortestDistance = distance
-                    closestNPC = hrp
+                -- Chuyển vị trí 3D của quái sang tọa độ 2D trên màn hình máy tính/điện thoại
+                local screenPos, onScreen = camera:WorldToViewportPoint(hrp.Position)
+                if onScreen then
+                    local mouseDist = (Vector2.new(screenPos.X, screenPos.Y) - centerScreen).Magnitude
+                    -- Quái phải nằm trong phạm vi vòng tròn FOV được thiết lập mới Lock tâm
+                    if mouseDist < Settings.aimbotFOV and mouseDist < shortestDistance then
+                        shortestDistance = mouseDist
+                        closestNPC = hrp
+                    end
                 end
             end
         end
@@ -196,7 +239,7 @@ player.CharacterAdded:Connect(function(newChar)
     table.clear(originalSizes)
 end)
 
--- ===== KHỞI TẠO SCREEN GUI =====
+-- ===== KHỞI TẠO SCREEN GUI CHÍNH =====
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "NguyenDzHub_v5_Ultimate"
 ScreenGui.ResetOnSpawn = false
@@ -301,7 +344,7 @@ UIStroke.Thickness = 2.5
 local SigmaText = Instance.new("TextLabel", SigmaFrame)
 SigmaText.Size = UDim2.new(1, 0, 1, 0)
 SigmaText.BackgroundTransparency = 1
-SigmaText.Text = "🔥 NGUYENDZHUB ULTIMATE 🔥\nMULTI-PLATFORM | COMBAT & ESP"
+SigmaText.Text = "🔥 NGUYENDZHUB ULTIMATE 🔥\nVISUAL HITBOX & FOV AIMBOT"
 SigmaText.TextColor3 = Color3.fromRGB(255, 255, 255)
 SigmaText.Font = Enum.Font.SourceSansBold
 SigmaText.TextSize = 16
@@ -477,11 +520,12 @@ AddSlider(P_Main, "Tốc độ chạy", 5, 16, 250, 16, function(v) Settings.Cus
 AddSlider(P_Main, "Lực nhảy", 6, 50, 250, 50, function(v) Settings.CustomJump = v if humanoid then humanoid.JumpPower = v; humanoid.UseJumpPower = true end end)
 AddToggle(P_Main, "Anti-Ban Engine", 7, false, function(s) ToggleAntiBan(s) end)
 
--- Ráp nối cụm Combat mới vào dưới tab Main luôn
+-- Cụm Combat tích hợp phản hồi hình ảnh trực quan mới
 AddTitle(P_Main, "Hỗ trợ Chiến đấu (Combat)", 8)
-AddToggle(P_Main, "Bật Tăng Hitbox NPC", 9, false, function(s) Settings.hitboxEnabled = s if not s then ResetHitboxes() end end)
-AddSlider(P_Main, "Kích thước Hitbox", 10, 2, 25, 2, function(v) Settings.hitboxSize = v end)
-AddToggle(P_Main, "Bật Ghim Tâm (Aimbot)", 11, false, function(s) Settings.aimbotEnabled = s end)
+AddToggle(P_Main, "Bật Hiện/Tăng Hitbox NPC", 9, false, function(s) Settings.hitboxEnabled = s if not s then ResetHitboxes() end end)
+AddSlider(P_Main, "Kích thước Kính Hitbox", 10, 2, 35, 15, function(v) Settings.hitboxSize = v end)
+AddToggle(P_Main, "Bật Ghim Tâm (Vòng FOV)", 11, false, function(s) Settings.aimbotEnabled = s UpdateFOVDisplay() end)
+AddSlider(P_Main, "Bán kính Vòng FOV", 12, 50, 400, 150, function(v) Settings.aimbotFOV = v UpdateFOVDisplay() end)
 
 -- ===== GÁN SỰ KIỆN TAB ESP =====
 AddTitle(P_Visuals, "Hệ thống ESP Dot siêu nhẹ", 1)
@@ -531,6 +575,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
 end)
 CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
+    FOVGui:Destroy()
 end)
 OpenMenuBtn.MouseButton1Click:Connect(function()
     MainMenu.Visible = true
@@ -575,8 +620,9 @@ end)
 
 -- ===== LUỒNG QUÉT TĂNG HITBOX THEO CHU KỲ CHỐNG LAG =====
 task.spawn(function()
-    while task.wait(1) do
+    while task.wait(0.6) do
         if Settings.hitboxEnabled then
+            pcall(UpdateMobFolders)
             for _, obj in ipairs(workspace:GetChildren()) do
                 if obj:IsA("Model") and obj ~= char and not game.Players:GetPlayerFromCharacter(obj) then
                     ApplyHitbox(obj)
@@ -664,9 +710,9 @@ end)
 
 -- ===== ENGINE ĐIỀU KHIỂN FLY & LOCK AIMBOT THEO HƯỚNG CAM =====
 RunService.RenderStepped:Connect(function()
-    -- Xử lý Aimbot khóa camera vào quái gần nhất
+    -- Xử lý Aimbot ghim camera vào quái nằm trong vòng tròn FOV màn hình
     if Settings.aimbotEnabled then
-        local target = GetClosestNPC()
+        local target = GetClosestNPCToMouse()
         if target then
             camera.CFrame = CFrame.new(camera.CFrame.Position, target.Position)
         end

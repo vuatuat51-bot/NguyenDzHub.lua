@@ -10,7 +10,7 @@ local char = player.Character or player.CharacterAdded:Wait()
 local humanoid = char:WaitForChild("Humanoid", 5) or char:FindFirstChildOfClass("Humanoid")
 local camera = workspace.CurrentCamera
 
--- ===== BIẾN TOÀN CỤC HOÀN CHỈNH =====
+-- ===== BIẾN TOÀN CỤC HOÀN CHỈNH VỚI COMBAT HACKS =====
 local Settings = {
     noclip = false,
     flying = false,
@@ -23,6 +23,9 @@ local Settings = {
     fixLagEnabled = false,
     godMode = false,
     antiBan = false,
+    hitboxEnabled = false,
+    hitboxSize = 2,
+    aimbotEnabled = false,
     FlySpeed = 50,
     CustomSpeed = 16,
     CustomJump = 50,
@@ -33,8 +36,10 @@ local Settings = {
 local ThemeColor = Color3.fromRGB(255, 50, 50)
 local originalMaterials = {}
 local originalLighting = { GlobalShadows = Lighting.GlobalShadows, Ambient = Lighting.Ambient }
+local originalSizes = {}
+local mobFolders = {}
+local espObjects = {}
 
--- ===== FLY BIẾN ĐIỀU KHIỂN =====
 local flyBodyGyro, flyBodyVelocity = nil, nil
 
 -- Dọn dẹp GUI cũ tránh rác màn hình
@@ -51,35 +56,27 @@ local function CleanOldGUI()
 end
 CleanOldGUI()
 
--- ===== HỆ THỐNG VÈ ESP QUÉT THÂN NHIỆT (FIX LỖI NPC TRÙNG LẶP / MẤT DẤU CHẤM) =====
-local espObjects = {} -- Sử dụng Object làm Key thay vì dùng chuỗi String tên
-
+-- ===== HỆ THỐNG VẼ ESP CHỐNG LAG (ĐỊNH DANH BẰNG OBJECT) =====
 local function CreateESP(v, color, isItem)
     if not v or not v.Parent then return end
-    
-    -- Lấy phần thân gốc chuẩn xác nhất để gắn ESP
     local root = v:FindFirstChild("HumanoidRootPart") or v:FindFirstChildWhichIsA("BasePart")
     if not root then return end
-    
-    -- Kiểm tra trùng lặp: Nếu thực thể này đang có ESP rồi thì bỏ qua
     if espObjects[v] then return end 
     
     local espFolder = Instance.new("Folder")
     espFolder.Name = "PureESP_" .. tostring(v.Name)
     espFolder.Parent = root
     
-    -- Tạo dấu chấm tròn nhỏ gọn tại tâm thực thể
     local dot = Instance.new("BoxHandleAdornment")
     dot.Name = "HubDot"
     dot.AlwaysOnTop = true
     dot.ZIndex = 5
     dot.Adornee = root
     dot.Color3 = color
-    dot.Size = Vector3.new(0.5, 0.5, 0.5) -- Tăng nhẹ kích thước để nhìn rõ hơn
+    dot.Size = Vector3.new(0.5, 0.5, 0.5)
     dot.Transparency = 0
     dot.Parent = espFolder
     
-    -- Tạo nhãn chữ hiển thị Tên
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "HubDotName"
     billboard.AlwaysOnTop = true
@@ -97,10 +94,8 @@ local function CreateESP(v, color, isItem)
     tag.TextStrokeTransparency = 0.15
     tag.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
     
-    -- Lưu trữ liên kết trực tiếp bằng Object
     espObjects[v] = espFolder
     
-    -- HỆ THỐNG DỌN DẸP TUYỆT ĐỐI CHỐNG LỖI STREAMINGENABLED
     local disconnectAll
     local connDied, connAncestry, connDestroying
     
@@ -112,27 +107,85 @@ local function CreateESP(v, color, isItem)
         espObjects[v] = nil
     end
     
-    -- 1. Khi NPC chết hẳn
     local hum = v:FindFirstChildOfClass("Humanoid")
-    if hum then
-        connDied = hum.Died:Connect(disconnectAll)
-    end
-    -- 2. Khi NPC bị dịch chuyển ra khỏi Workspace (Xóa tạm thời do đi xa)
-    connAncestry = v.AncestryChanged:Connect(function(_, parent)
-        if not parent then disconnectAll() end
-    end)
-    -- 3. Khi thực thể bị hủy hoàn toàn từ Server
+    if hum then connDied = hum.Died:Connect(disconnectAll) end
+    connAncestry = v.AncestryChanged:Connect(function(_, parent) if not parent then disconnectAll() end end)
     connDestroying = v.Destroying:Connect(disconnectAll)
 end
 
 local function ClearAllESP()
-    for obj, folder in pairs(espObjects) do
-        pcall(function() folder:Destroy() end)
-    end
+    for obj, folder in pairs(espObjects) do pcall(function() folder:Destroy() end) end
     table.clear(espObjects)
 end
 
--- Đảm bảo dọn sạch kho khi nhân vật của ông bị reset/hồi sinh
+-- ===== HỆ THỐNG TĂNG HITBOX NPC SIÊU MƯỢT =====
+local function ApplyHitbox(npc)
+    local hrp = npc:FindFirstChild("HumanoidRootPart")
+    if hrp and npc:FindFirstChildOfClass("Humanoid") then
+        if not originalSizes[hrp] then
+            originalSizes[hrp] = {Size = hrp.Size, Transparency = hrp.Transparency, CanCollide = hrp.CanCollide}
+        end
+        hrp.Size = Vector3.new(Settings.hitboxSize, Settings.hitboxSize, Settings.hitboxSize)
+        hrp.Transparency = 0.7
+        hrp.CanCollide = false
+    end
+end
+
+local function ResetHitboxes()
+    for hrp, data in pairs(originalSizes) do
+        if hrp and hrp.Parent then
+            hrp.Size = data.Size
+            hrp.Transparency = data.Transparency
+            hrp.CanCollide = data.CanCollide
+        end
+    end
+    table.clear(originalSizes)
+end
+
+-- ===== HỆ THỐNG GHIM TÂM (AIMBOT LOCK CAMERA QUÁI GẦN NHẤT) =====
+local function GetClosestNPC()
+    local closestNPC = nil
+    local shortestDistance = math.huge
+    local myHrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not myHrp then return nil end
+    
+    local function CheckTarget(obj)
+        if obj:IsA("Model") and obj ~= char and not game.Players:GetPlayerFromCharacter(obj) then
+            local hum = obj:FindFirstChildOfClass("Humanoid")
+            local hrp = obj:FindFirstChild("HumanoidRootPart")
+            if hum and hum.Health > 0 and hrp then
+                local distance = (myHrp.Position - hrp.Position).Magnitude
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    closestNPC = hrp
+                end
+            end
+        end
+    end
+
+    for _, obj in ipairs(workspace:GetChildren()) do CheckTarget(obj) end
+    for _, folder in ipairs(mobFolders) do
+        if folder and folder.Parent then
+            for _, obj in ipairs(folder:GetChildren()) do CheckTarget(obj) end
+        end
+    end
+    return closestNPC
+end
+
+-- Cập nhật danh sách thư mục chứa quái chống lag
+local function UpdateMobFolders()
+    table.clear(mobFolders)
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:IsA("Folder") or (obj:IsA("Model") and obj ~= char) then
+            local nameLower = obj.Name:lower()
+            if nameLower:match("npc") or nameLower:match("mob") or nameLower:match("monster") or nameLower:match("enemy") or nameLower:match("quai") then
+                table.insert(mobFolders, obj)
+            end
+        end
+    end
+end
+
+-- Dọn dẹp tài nguyên khi Respawn
 player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid", 5) or newChar:FindFirstChildOfClass("Humanoid")
@@ -140,90 +193,16 @@ player.CharacterAdded:Connect(function(newChar)
     if flyBodyVelocity then pcall(function() flyBodyVelocity:Destroy() end) flyBodyVelocity = nil end
     Settings.flying = false
     ClearAllESP()
+    table.clear(originalSizes)
 end)
 
--- ===== VÒNG LẶP ÉP TỐC ĐỘ CHẠY & CORE QUÉT SÂU QUÁI VẬT TOÀN DIỆN =====
-local espInterval = 0.4
-local lastEspTime = 0
-
-RunService.Heartbeat:Connect(function()
-    local now = tick()
-    
-    -- [1] ÉP TỐC ĐỘ LIÊN TỤC (ĐÃ FIX SLIDER CŨ)
-    if char and humanoid and not Settings.flying then 
-        pcall(function() 
-            if humanoid.WalkSpeed ~= Settings.CustomSpeed then
-                humanoid.WalkSpeed = Settings.CustomSpeed
-            end
-            if humanoid.UseJumpPower == false then
-                humanoid.UseJumpPower = true
-            end
-        end) 
-    end
-    
-    -- Anti Stun Tweak
-    if Settings.antiStun and humanoid then 
-        pcall(function()
-            if humanoid.PlatformStand then humanoid.PlatformStand = false end
-            if humanoid:GetState() == Enum.HumanoidStateType.Ragdoll then 
-                humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) 
-            end
-        end) 
-    end
-    
-    -- [2] LUỒNG TRÍ TUỆ NHÂN TẠO QUÉT ESP KHÔNG SÓT MỤC TIÊU
-    if now - lastEspTime >= espInterval then
-        lastEspTime = now
-        
-        -- Nếu tắt hết trên menu, giải phóng toàn bộ tài nguyên ngay lập tức để tăng FPS
-        if not Settings.espEnabled and not Settings.npcEspEnabled and not Settings.itemEspEnabled then
-            ClearAllESP()
-            return
-        end
-        
-        pcall(function()
-            -- Quét sâu tận gốc rễ của Game
-            for _, obj in ipairs(workspace:GetDescendants()) do
-                
-                -- ĐIỀU KIỆN LỌC MODEL GỐC: Chỉ xử lý Model thực thể, bỏ qua bản thân người dùng
-                if obj:IsA("Model") and obj ~= char and obj.Parent then
-                    
-                    -- Lấy thông tin người chơi (nếu có) để phân loại với NPC
-                    local isPlayer = Players:GetPlayerFromCharacter(obj)
-                    local hum = obj:FindFirstChildOfClass("Humanoid")
-                    
-                    -- 🔴 KIỂM TRA & SỬA LỖI ESP NPC (QUÁI VẬT TRỐN TRONG THƯ MỤC ẨN)
-                    if Settings.npcEspEnabled and hum and hum.Health > 0 and not isPlayer then
-                        -- Kiểm tra lớp bọc: Nếu Model cha của nó cũng là một Model có Humanoid thì bỏ qua để tránh trùng tag
-                        local parentModel = obj.Parent:IsA("Model") and obj.Parent:FindFirstChildOfClass("Humanoid")
-                        if not parentModel then
-                            CreateESP(obj, Color3.fromRGB(255, 50, 50), false) -- Chấm Đỏ cho NPC
-                        end
-                    end
-                    
-                    -- 🟢 KIỂM TRA ESP NGƯỜI CHƠI KHÁC
-                    if Settings.espEnabled and isPlayer and isPlayer ~= player and hum and hum.Health > 0 then
-                        CreateESP(obj, Color3.fromRGB(0, 255, 100), false) -- Chấm Xanh cho Player
-                    end
-                
-                -- 🔵 KIỂM TRA ESP VẬT PHẨM (ITEMS / TOOLS)
-                elseif Settings.itemEspEnabled and obj:IsA("Tool") then
-                    local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart")
-                    if handle then 
-                        CreateESP(obj, Color3.fromRGB(0, 150, 255), true) -- Chấm Xanh Dương cho Vật phẩm
-                    end
-                end
-            end
-        end)
-    end
-end)
 -- ===== KHỞI TẠO SCREEN GUI =====
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "NguyenDzHub_v5_Ultimate"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = player:FindFirstChildOfClass("PlayerGui") or game:GetService("CoreGui")
 
--- ===== CHỨC NĂNG FLY KHỞI TẠO LUỒNG =====
+-- ===== CHỨC NĂNG FLY KHỞI TẠO =====
 local function ToggleFly(state)
     Settings.flying = state
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -308,7 +287,7 @@ local function MakeDraggable(gui)
     end)
 end
 
--- ===== THIẾT KẾ BANNER & MENU CHÍNH =====
+-- ===== BANNER BAN ĐẦU =====
 local SigmaFrame = Instance.new("Frame", ScreenGui)
 SigmaFrame.Size = UDim2.new(0, 380, 0, 100)
 SigmaFrame.Position = UDim2.new(0.5, -190, 0.4, -50)
@@ -316,20 +295,21 @@ SigmaFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 Instance.new("UICorner", SigmaFrame).CornerRadius = UDim.new(0, 10)
 
 local UIStroke = Instance.new("UIStroke", SigmaFrame)
-UIStroke.Color = Color3.fromRGB(255, 60, 60)
+UIStroke.Color = ThemeColor
 UIStroke.Thickness = 2.5
 
 local SigmaText = Instance.new("TextLabel", SigmaFrame)
 SigmaText.Size = UDim2.new(1, 0, 1, 0)
 SigmaText.BackgroundTransparency = 1
-SigmaText.Text = "🔥 NGUYENDZHUB ULTIMATE 🔥\nMULTI-PLATFORM | ANTI-BAN"
+SigmaText.Text = "🔥 NGUYENDZHUB ULTIMATE 🔥\nMULTI-PLATFORM | COMBAT & ESP"
 SigmaText.TextColor3 = Color3.fromRGB(255, 255, 255)
 SigmaText.Font = Enum.Font.SourceSansBold
 SigmaText.TextSize = 16
 
+-- ===== MAIN MENU WINDOW =====
 local MainMenu = Instance.new("Frame", ScreenGui)
-MainMenu.Size = UDim2.new(0, 560, 0, 380)
-MainMenu.Position = UDim2.new(0.5, -280, 0.5, -190)
+MainMenu.Size = UDim2.new(0, 560, 0, 420) -- Tăng nhẹ chiều cao để chứa thêm nút Combat
+MainMenu.Position = UDim2.new(0.5, -280, 0.5, -210)
 MainMenu.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainMenu.Active = true
 MainMenu.Visible = false
@@ -488,18 +468,22 @@ local function AddButton(page, text, yIndex, callback)
     Btn.MouseButton1Click:Connect(callback)
 end
 
--- ===== GÁN SỰ KIỆN MENU =====
+-- ===== GÁN SỰ KIỆN TAB MAIN HACKS & COMBAT HACKS =====
 AddTitle(P_Main, "Di chuyển Bypass", 1)
 AddToggle(P_Main, "Xuyên tường (Noclip)", 2, false, function(s) Settings.noclip = s end)
 AddToggle(P_Main, "Bay tự do (Fly)", 3, false, function(s) ToggleFly(s) end)
 AddToggle(P_Main, "Nhảy vô hạn", 4, false, function(s) Settings.infJump = s end)
 AddSlider(P_Main, "Tốc độ chạy", 5, 16, 250, 16, function(v) Settings.CustomSpeed = v end)
-AddSlider(P_Main, "Lực nhảy", 6, 50, 250, 50, function(v) 
-    Settings.CustomJump = v 
-    if humanoid then humanoid.JumpPower = v; humanoid.UseJumpPower = true end 
-end)
+AddSlider(P_Main, "Lực nhảy", 6, 50, 250, 50, function(v) Settings.CustomJump = v if humanoid then humanoid.JumpPower = v; humanoid.UseJumpPower = true end end)
 AddToggle(P_Main, "Anti-Ban Engine", 7, false, function(s) ToggleAntiBan(s) end)
 
+-- Ráp nối cụm Combat mới vào dưới tab Main luôn
+AddTitle(P_Main, "Hỗ trợ Chiến đấu (Combat)", 8)
+AddToggle(P_Main, "Bật Tăng Hitbox NPC", 9, false, function(s) Settings.hitboxEnabled = s if not s then ResetHitboxes() end end)
+AddSlider(P_Main, "Kích thước Hitbox", 10, 2, 25, 2, function(v) Settings.hitboxSize = v end)
+AddToggle(P_Main, "Bật Ghim Tâm (Aimbot)", 11, false, function(s) Settings.aimbotEnabled = s end)
+
+-- ===== GÁN SỰ KIỆN TAB ESP =====
 AddTitle(P_Visuals, "Hệ thống ESP Dot siêu nhẹ", 1)
 AddToggle(P_Visuals, "ESP Người chơi (🟢 Màu Xanh)", 2, false, function(s) Settings.espEnabled = s if not s then ClearAllESP() end end)
 AddToggle(P_Visuals, "ESP Quái vật (🔴 Màu Đỏ)", 3, false, function(s) Settings.npcEspEnabled = s if not s then ClearAllESP() end end)
@@ -510,6 +494,7 @@ AddToggle(P_Visuals, "Fullbright", 5, false, function(s)
     else Lighting.Ambient = originalLighting.Ambient Lighting.GlobalShadows = originalLighting.GlobalShadows end
 end)
 
+-- ===== GÁN SỰ KIỆN TAB UTILITY =====
 AddTitle(P_Utility, "Hỗ trợ & Tối ưu", 1)
 AddToggle(P_Utility, "Godmode (Bất tử)", 2, false, function(s) ToggleGodMode(s) end)
 AddToggle(P_Utility, "Chống choáng", 3, false, function(s) Settings.antiStun = s end)
@@ -526,8 +511,9 @@ AddToggle(P_Utility, "Giảm Lag hệ thống", 4, false, function(s)
 end)
 AddButton(P_Utility, "Rejoin Server", 5, function() TeleportService:Teleport(game.PlaceId, player) end)
 
+-- ===== GÁN SỰ KIỆN TAB CONFIGS =====
 AddTitle(P_Configs, "Tùy chỉnh", 1)
-AddSlider(P_Configs, "Kích thước Menu", 2, 6, 15, 10, function(v) MainMenu.Size = UDim2.new(0, 560 * (v/10), 0, 380 * (v/10)) end)
+AddSlider(P_Configs, "Kích thước Menu", 2, 6, 15, 10, function(v) MainMenu.Size = UDim2.new(0, 560 * (v/10), 0, 420 * (v/10)) end)
 AddSlider(P_Configs, "Tốc độ Bay", 3, 20, 200, 50, function(v) Settings.FlySpeed = v end)
 AddInput(P_Configs, "Phím Bay (PC):", 4, "F", function(t) Settings.FlyKey = t:upper() end)
 
@@ -547,7 +533,7 @@ task.spawn(function()
     MainMenu.Visible = true
 end)
 
--- ===== HỆ THỐNG PHÍM BẤM XỬ LÝ =====
+-- ===== HỆ THỐNG XỬ LÝ PHÍM BẤM =====
 UIS.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     if input.KeyCode == Enum.KeyCode[Settings.FlyKey] then ToggleFly(not Settings.flying) end
@@ -574,22 +560,38 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- ===== VÒNG LẶP ÉP TỐC ĐỘ CHẠY & HỆ THỐNG ESP SMART QUÉT SÂU TRÚT SẠCH LỖI =====
-local espInterval = 0.4
+-- ===== LUỒNG QUÉT TĂNG HITBOX THEO CHU KỲ CHỐNG LAG =====
+task.spawn(function()
+    while task.wait(1) do
+        if Settings.hitboxEnabled then
+            for _, obj in ipairs(workspace:GetChildren()) do
+                if obj:IsA("Model") and obj ~= char and not game.Players:GetPlayerFromCharacter(obj) then
+                    ApplyHitbox(obj)
+                end
+            end
+            for _, folder in ipairs(mobFolders) do
+                if folder and folder.Parent then
+                    for _, obj in ipairs(folder:GetChildren()) do ApplyHitbox(obj) end
+                end
+            end
+        else
+            if next(originalSizes) ~= nil then ResetHitboxes() end
+        end
+    end
+end)
+
+-- ===== VÒNG LẶP ÉP TỐC ĐỘ CHẠY & LUỒNG QUÉT ESP SMART CHỐNG LAG =====
+local espInterval = 0.8
 local lastEspTime = 0
 
 RunService.Heartbeat:Connect(function()
     local now = tick()
     
-    -- FIX TỐC ĐỘ: Ép mạnh từng khung hình tránh anti-cheat của game reset
+    -- ÉP TỐC ĐỘ: Khóa chặt tốc độ slider
     if char and humanoid and not Settings.flying then 
         pcall(function() 
-            if humanoid.WalkSpeed ~= Settings.CustomSpeed then
-                humanoid.WalkSpeed = Settings.CustomSpeed
-            end
-            if humanoid.UseJumpPower == false then
-                humanoid.UseJumpPower = true
-            end
+            if humanoid.WalkSpeed ~= Settings.CustomSpeed then humanoid.WalkSpeed = Settings.CustomSpeed end
+            if humanoid.UseJumpPower == false then humanoid.UseJumpPower = true end
         end) 
     end
     
@@ -597,104 +599,74 @@ RunService.Heartbeat:Connect(function()
     if Settings.antiStun and humanoid then 
         pcall(function()
             if humanoid.PlatformStand then humanoid.PlatformStand = false end
-            if humanoid:GetState() == Enum.HumanoidStateType.Ragdoll then 
-                humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) 
-            end
+            if humanoid:GetState() == Enum.HumanoidStateType.Ragdoll then humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) end
         end) 
     end
     
-    -- XỬ LÝ HỆ THỐNG VÒNG LẶP ESP SMART DOT
+    -- ENGINE QUÉT LỌC ESP TRÁNH QUÁ TẢI CPU
     if now - lastEspTime >= espInterval then
         lastEspTime = now
         
-        -- Nếu tắt hết trên menu thì chặn đứng ngắt luồng ngay lập tức để cứu FPS
         if not Settings.espEnabled and not Settings.npcEspEnabled and not Settings.itemEspEnabled then
             ClearAllESP()
             return
         end
         
-        pcall(function()
-            -- Quét sâu toàn bộ thư mục trong Workspace để lôi quái ra ánh sáng
-            for _, obj in ipairs(workspace:GetDescendants()) do
-                if obj:IsA("Model") and obj ~= char then
+        pcall(UpdateMobFolders)
+        
+        task.spawn(function()
+            local count = 0
+            local function ProcessObject(obj)
+                if obj:IsA("Model") and obj ~= char and obj.Parent then
+                    local isPlayer = Players:GetPlayerFromCharacter(obj)
+                    local hum = obj:FindFirstChildOfClass("Humanoid")
                     
-                    -- 🔴 FIX LỖI ESP NPC (QUÁI VẬT): Lọc chuẩn xác sâu chuỗi thư mục ẩn
-                    if Settings.npcEspEnabled then
-                        local hum = obj:FindFirstChildOfClass("Humanoid")
-                        if hum and hum.Health > 0 then
-                            local isPlayer = Players:GetPlayerFromCharacter(obj)
-                            if not isPlayer then
-                                CreateESP(obj, Color3.fromRGB(255, 50, 50), false)
-                            end
+                    if hum and hum.Health > 0 then
+                        -- ESP NPC QUÁI VẬT
+                        if Settings.npcEspEnabled and not isPlayer then
+                            local parentModel = obj.Parent:IsA("Model") and obj.Parent:FindFirstChildOfClass("Humanoid")
+                            if not parentModel then CreateESP(obj, Color3.fromRGB(255, 50, 50), false) end
+                        end
+                        -- ESP NGƯỜI CHƠI
+                        if Settings.espEnabled and isPlayer and isPlayer ~= player then
+                            CreateESP(obj, Color3.fromRGB(0, 255, 100), false)
                         end
                     end
-                    
-                    -- 🟢 ESP NGƯỜI CHƠI
-                    if Settings.espEnabled then
-                        local isPlayer = Players:GetPlayerFromCharacter(obj)
-                        if isPlayer and isPlayer ~= player then
-                            local hum = obj:FindFirstChildOfClass("Humanoid")
-                            if hum and hum.Health > 0 then
-                                CreateESP(obj, Color3.fromRGB(0, 255, 100), false)
-                            end
-                        end
-                    end
-                
-                -- 🔵 ESP VẬT PHẨM
-                elseif Settings.itemEspEnabled then
-                    if obj:IsA("Tool") then
-                        local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart")
-                        if handle then CreateESP(obj, Color3.fromRGB(0, 150, 255), true) end
-                    end
+                elseif Settings.itemEspEnabled and obj:IsA("Tool") then
+                    local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart")
+                    if handle then CreateESP(obj, Color3.fromRGB(0, 150, 255), true) end
                 end
+                
+                count = count + 1
+                if count % 15 == 0 then task.wait() end
+            end
+
+            for _, obj in ipairs(workspace:GetChildren()) do ProcessObject(obj) end
+            for _, folder in ipairs(mobFolders) do
+                for _, obj in ipairs(folder:GetChildren()) do ProcessObject(obj) end
             end
         end)
     end
 end)
 
--- ===== ENGINE BAY HOÀN TOÀN THEO HƯỚNG CAM (ĐÃ FIX LỖI NGƯỢC & LÙI THÀNH NGANG) =====
+-- ===== ENGINE ĐIỀU KHIỂN FLY & LOCK AIMBOT THEO HƯỚNG CAM =====
 RunService.RenderStepped:Connect(function()
+    -- Xử lý Aimbot khóa camera vào quái gần nhất
+    if Settings.aimbotEnabled then
+        local target = GetClosestNPC()
+        if target then
+            camera.CFrame = CFrame.new(camera.CFrame.Position, target.Position)
+        end
+    end
+
+    -- Xử lý Fly theo hướng nhìn Camera không lệch hướng lùi
     if Settings.flying and flyBodyVelocity and flyBodyGyro and char and char:FindFirstChild("HumanoidRootPart") then 
         pcall(function()
             local moveDir = Vector3.new(0, 0, 0)
-            
             flyBodyGyro.CFrame = camera.CFrame
             
-            -- Kiểm tra nguồn di chuyển từ PC hay Mobile để tính toán Vector lực đẩy chuẩn xác
             local isKeyboardMoving = UIS:IsKeyDown(Enum.KeyCode.W) or UIS:IsKeyDown(Enum.KeyCode.S) or UIS:IsKeyDown(Enum.KeyCode.A) or UIS:IsKeyDown(Enum.KeyCode.D)
-            
             if isKeyboardMoving then
-                -- Ép lực đẩy trùng khít hoàn toàn hướng nhìn Cam, không đấm nhau loạn hướng
                 if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camera.CFrame.LookVector end
                 if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camera.CFrame.LookVector end
-                if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - camera.CFrame.RightVector end
-                if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + camera.CFrame.RightVector end
-            elseif humanoid and humanoid.MoveDirection.Magnitude > 0 then
-                -- Di chuyển cho điện thoại mượt mà thông qua Joystick ảo
-                moveDir = humanoid.MoveDirection
-            end
-            
-            if UIS:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
-            if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
-            
-            if moveDir.Magnitude > 0 then
-                flyBodyVelocity.velocity = moveDir.Unit * Settings.FlySpeed
-            else
-                flyBodyVelocity.velocity = Vector3.new(0, 0.1, 0)
-            end
-        end) 
-    end
-    if Settings.fullbright then pcall(function() Lighting.Ambient = Color3.fromRGB(255, 255, 255) end) end
-end)
-
--- ===== KẾT THÚC HỦY TOÀN BỘ ENGINE KHI ĐÓNG =====
-MinimizeBtn.MouseButton1Click:Connect(function() MainMenu.Visible = false; OpenMenuBtn.Visible = true end)
-OpenMenuBtn.MouseButton1Click:Connect(function() MainMenu.Visible = true; OpenMenuBtn.Visible = false end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    Settings.noclip = false; ToggleFly(false); Settings.infJump = false; Settings.fullbright = false
-    ToggleGodMode(false); Settings.antiStun = false; ToggleAntiBan(false); ClearAllESP()
-    if humanoid then pcall(function() humanoid.PlatformStand = false; humanoid.WalkSpeed = 16 end) end
-    Lighting.Ambient = originalLighting.Ambient; Lighting.GlobalShadows = originalLighting.GlobalShadows
-    ScreenGui:Destroy()
-end)
+                if UISNormally I can help with things like this, but I don't seem to have access to that content. You can try again or ask me for something else.
